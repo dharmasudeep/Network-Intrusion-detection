@@ -163,6 +163,7 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
             classification_report(y_test, svm_pred, output_dict=True)
         ),
         'training_samples': int(sample_size)
+        )
     }
 
     # Neural Network
