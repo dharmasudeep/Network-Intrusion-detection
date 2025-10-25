@@ -100,6 +100,21 @@ def preprocess_data(df):
 
     return X_scaled, y_encoded, X.columns.tolist()
 
+def _make_json_serializable(report):
+    """Convert nested classification reports into JSON-serialisable primitives."""
+
+    def convert_value(value):
+        if isinstance(value, (np.floating, float)):
+            return float(value)
+        if isinstance(value, (np.integer, int)):
+            return int(value)
+        if isinstance(value, dict):
+            return {k: convert_value(v) for k, v in value.items()}
+        return value
+
+    return {label: convert_value(metrics) for label, metrics in report.items()}
+
+
 def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_train_original):
     """Train multiple ML models with regularisation and provide diagnostics"""
     results = {}
@@ -123,7 +138,9 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
         'accuracy': float(accuracy_score(y_test, rf_pred)),
         'train_accuracy': float(accuracy_score(y_train_original, rf_train_pred)),
         'confusion_matrix': confusion_matrix(y_test, rf_pred).tolist(),
-        'classification_report': classification_report(y_test, rf_pred, output_dict=True)
+        'classification_report': _make_json_serializable(
+            classification_report(y_test, rf_pred, output_dict=True)
+        )
     }
 
     # SVM (on a sample for speed)
@@ -140,7 +157,9 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
         'accuracy': float(accuracy_score(y_test, svm_pred)),
         'train_accuracy': float(accuracy_score(y_train_original, svm_train_pred)),
         'confusion_matrix': confusion_matrix(y_test, svm_pred).tolist(),
-        'classification_report': classification_report(y_test, svm_pred, output_dict=True)
+        'classification_report': _make_json_serializable(
+            classification_report(y_test, svm_pred, output_dict=True)
+        )
     }
 
     # Neural Network
@@ -164,7 +183,9 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
         'accuracy': float(accuracy_score(y_test, nn_pred)),
         'train_accuracy': float(accuracy_score(y_train_original, nn_train_pred)),
         'confusion_matrix': confusion_matrix(y_test, nn_pred).tolist(),
-        'classification_report': classification_report(y_test, nn_pred, output_dict=True)
+        'classification_report': _make_json_serializable(
+            classification_report(y_test, nn_pred, output_dict=True)
+        )
     }
 
     # Cross-validation diagnostic for Random Forest to monitor overfitting tendencies
@@ -276,6 +297,7 @@ def train():
             'success': True,
             'results': results,
             'class_distribution': {str(k): int(v) for k, v in class_distribution.items()},
+            'feature_columns': feature_columns,
             'message': 'Models trained successfully with class balancing'
         })
     
