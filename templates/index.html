@@ -3,708 +3,639 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Attack Detection Dashboard</title>
+    <title>Network Attack Detection</title>
     <style>
         :root {
             color-scheme: light dark;
-            --bg: #0b1726;
-            --bg-alt: #11263d;
-            --card: #152c46;
-            --accent: #00d1ff;
-            --accent-soft: rgba(0, 209, 255, 0.12);
-            --text: #f0f6ff;
-            --text-muted: #c0d5f2;
-            --danger: #ff4d6d;
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg: #0f172a;
+            --bg-card: rgba(15, 23, 42, 0.92);
+            --border: rgba(148, 163, 184, 0.25);
+            --accent: #38bdf8;
+            --accent-dark: #0ea5e9;
+            --text: #e2e8f0;
+            --text-soft: #cbd5f5;
             --success: #34d399;
-            --warning: #fbbf24;
-            font-family: "Inter", "Segoe UI", sans-serif;
+            --danger: #f87171;
+            --warning: #facc15;
         }
 
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
         }
 
         body {
             margin: 0;
-            background: linear-gradient(160deg, rgba(11, 23, 38, 0.95), rgba(8, 16, 28, 0.95)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80');
-            background-attachment: fixed;
-            background-size: cover;
+            min-height: 100vh;
+            background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.15), transparent 65%),
+                        radial-gradient(circle at 90% 10%, rgba(129, 140, 248, 0.12), transparent 60%),
+                        linear-gradient(160deg, #020617 0%, #0b1120 50%, #111827 100%);
             color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 18px 64px;
         }
 
         header {
-            padding: 3rem 1.5rem 2rem;
             text-align: center;
+            max-width: 760px;
+            margin-bottom: 32px;
         }
 
         header h1 {
-            font-size: clamp(2rem, 5vw, 3.5rem);
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.08em;
+            font-size: clamp(2rem, 5vw, 3.25rem);
+            letter-spacing: 0.05em;
+            margin: 0 0 12px;
         }
 
         header p {
-            margin: 0 auto;
-            max-width: 720px;
-            color: var(--text-muted);
-            font-size: 1.05rem;
+            margin: 0;
             line-height: 1.6;
+            color: var(--text-soft);
         }
 
         main {
-            padding: 0 1.5rem 3rem;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: min(1100px, 100%);
             display: grid;
-            gap: 1.75rem;
+            gap: 22px;
         }
 
         section {
-            background: rgba(17, 38, 61, 0.88);
-            border-radius: 16px;
-            padding: 1.75rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 209, 255, 0.15);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 26px 26px 30px;
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.45);
         }
 
-        h2 {
-            margin-top: 0;
-            letter-spacing: 0.05em;
+        section h2 {
+            margin: 0 0 14px;
             font-size: 1.35rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
-        .upload-card {
-            display: grid;
-            gap: 1.5rem;
+        .card-description {
+            margin: 0 0 22px;
+            color: var(--text-soft);
+            line-height: 1.55;
+            font-size: 0.98rem;
         }
 
-        .dropzone {
-            border: 2px dashed rgba(0, 209, 255, 0.35);
-            border-radius: 14px;
-            padding: 2.5rem 1.5rem;
+        .upload-area {
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 32px;
             text-align: center;
-            background: rgba(0, 209, 255, 0.05);
-            transition: all 0.25s ease;
-            cursor: pointer;
+            transition: border-color 0.25s ease, background 0.25s ease;
+            background: rgba(30, 41, 59, 0.4);
         }
 
-        .dropzone.dragover {
+        .upload-area.dragover {
             border-color: var(--accent);
-            background: rgba(0, 209, 255, 0.12);
-            transform: translateY(-2px);
+            background: rgba(56, 189, 248, 0.12);
         }
 
-        .dropzone p {
-            margin: 0.5rem 0 0;
-            color: var(--text-muted);
+        .upload-area strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
         }
 
-        input[type="file"] {
-            display: none;
+        .upload-area p {
+            margin: 0;
+            color: var(--text-soft);
+            font-size: 0.95rem;
+        }
+
+        button, .ghost-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            border-radius: 999px;
+            padding: 0.8rem 1.8rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            font-size: 0.98rem;
         }
 
         button {
-            border: none;
-            border-radius: 999px;
-            padding: 0.85rem 1.75rem;
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            color: var(--bg);
             background: var(--accent);
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            color: #020617;
+            box-shadow: 0 12px 22px rgba(14, 165, 233, 0.2);
         }
 
         button:hover:not(:disabled) {
             transform: translateY(-1px);
-            box-shadow: 0 12px 30px rgba(0, 209, 255, 0.25);
-            filter: brightness(1.05);
+            background: var(--accent-dark);
+            box-shadow: 0 16px 28px rgba(14, 165, 233, 0.28);
         }
 
         button:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
-            opacity: 0.45;
+            box-shadow: none;
         }
 
-        .button-row {
+        .ghost-button {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .ghost-button:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .status-bar {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 12px;
+            margin-top: 18px;
         }
 
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(0, 209, 255, 0.12);
+        .status-chip {
             border-radius: 999px;
-            padding: 0.35rem 0.85rem;
+            padding: 0.4rem 1.1rem;
+            background: rgba(148, 163, 184, 0.12);
             font-size: 0.9rem;
-            color: var(--text-muted);
         }
 
-        .status-pill span {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--warning);
-        }
+        .status-chip.success { background: rgba(52, 211, 153, 0.18); color: var(--success); }
+        .status-chip.warning { background: rgba(250, 204, 21, 0.18); color: var(--warning); }
+        .status-chip.danger { background: rgba(248, 113, 113, 0.18); color: var(--danger); }
 
-        .status-pill[data-state="ready"] span {
-            background: var(--success);
-        }
-
-        .status-pill[data-state="error"] span {
-            background: var(--danger);
-        }
-
-        .grid-two {
+        .results-grid {
             display: grid;
-            gap: 1.5rem;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
         }
 
-        .card-title {
+        .result-card {
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(30, 41, 59, 0.55);
+        }
+
+        .result-card h3 {
+            margin: 0 0 10px;
+            letter-spacing: 0.03em;
+        }
+
+        .metric-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
             font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--text-muted);
-            margin-bottom: 0.75rem;
         }
 
         .metric {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.6rem 0;
-            border-bottom: 1px solid rgba(240, 246, 255, 0.08);
-        }
-
-        .metric:last-child {
-            border-bottom: none;
-        }
-
-        .metric span {
-            font-weight: 600;
-        }
-
-        .metric small {
-            color: var(--text-muted);
+            background: rgba(148, 163, 184, 0.14);
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
-            font-size: 0.95rem;
+            margin-top: 14px;
+            font-size: 0.92rem;
         }
 
-        table th,
-        table td {
-            border: 1px solid rgba(240, 246, 255, 0.12);
-            padding: 0.6rem 0.8rem;
+        th, td {
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            padding: 6px 10px;
             text-align: center;
         }
 
-        table th {
-            background: rgba(0, 209, 255, 0.08);
+        th {
+            background: rgba(15, 23, 42, 0.75);
             font-weight: 600;
         }
 
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 999px;
-            padding: 0.3rem 0.75rem;
-            font-size: 0.85rem;
-            letter-spacing: 0.04em;
+        .prediction-form {
+            display: grid;
+            gap: 14px;
         }
 
-        .pill.success {
-            background: rgba(52, 211, 153, 0.15);
+        .prediction-form label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.93rem;
+            color: var(--text-soft);
+        }
+
+        .prediction-form input,
+        .prediction-form select,
+        .prediction-form textarea {
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .prediction-result {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .prediction-result.safe {
+            background: rgba(52, 211, 153, 0.18);
             color: var(--success);
         }
 
-        .pill.danger {
-            background: rgba(255, 77, 109, 0.18);
+        .prediction-result.attack {
+            background: rgba(248, 113, 113, 0.18);
             color: var(--danger);
         }
 
-        textarea, input[type="text"], select {
-            width: 100%;
-            border-radius: 12px;
-            border: 1px solid rgba(240, 246, 255, 0.15);
-            background: rgba(10, 22, 36, 0.6);
-            color: var(--text);
-            padding: 0.85rem 1rem;
-            font-size: 0.95rem;
-            transition: border 0.2s ease, box-shadow 0.2s ease;
+        code {
+            font-family: "Fira Code", "SFMono-Regular", Menlo, monospace;
+            background: rgba(148, 163, 184, 0.16);
+            padding: 2px 6px;
+            border-radius: 6px;
         }
 
-        textarea:focus,
-        input[type="text"]:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0, 209, 255, 0.2);
-        }
-
-        textarea {
-            min-height: 160px;
-            resize: vertical;
-        }
-
-        .log {
-            font-family: "JetBrains Mono", "Fira Code", monospace;
-            font-size: 0.9rem;
-            background: rgba(3, 8, 16, 0.9);
-            padding: 1rem;
-            border-radius: 12px;
-            border: 1px solid rgba(240, 246, 255, 0.12);
-            max-height: 220px;
-            overflow-y: auto;
+        .small-print {
+            font-size: 0.85rem;
+            color: var(--text-soft);
+            margin-top: 18px;
             line-height: 1.5;
         }
 
-        .log p {
-            margin: 0 0 0.65rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 3rem 1rem 1.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 680px) {
-            section {
-                padding: 1.25rem;
-            }
-
-            .button-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
+        @media (max-width: 768px) {
+            body { padding: 22px 14px 48px; }
+            section { padding: 22px 20px 26px; }
+            .metric-row { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
-<header>
-    <h1>Network Attack Detection Control Center</h1>
-    <p>Upload the CDD intrusion dataset, train benchmark machine learning models, and analyse predictions in a single place.
-        Track class balance, compare algorithms, and experiment with manual traffic simulations.</p>
-</header>
+    <header>
+        <h1>Network Attack Detection Lab</h1>
+        <p>
+            Upload the CDD intrusion dataset, train the Random Forest, SVM, and Neural Network models with the
+            built-in preprocessing pipeline, and submit manual feature vectors to simulate real-time threat scoring.
+        </p>
+    </header>
 
-<main>
-    <section class="upload-card">
-        <div>
-            <h2>1. Upload Dataset</h2>
-            <div class="status-pill" id="dataset-status" data-state="idle"><span></span><strong id="dataset-state-text">Awaiting CSV</strong></div>
-        </div>
-        <label class="dropzone" id="dropzone">
-            <strong>Drag &amp; Drop your CSV</strong>
-            <p>or click to browse &mdash; maximum 16&nbsp;MB. Expected columns include traffic metadata and a label column.</p>
-            <input type="file" id="file-input" accept=".csv" />
-        </label>
-        <div id="upload-info" class="log" hidden>
-            <p><strong>Filename:</strong> <span id="file-name"></span></p>
-            <p><strong>Rows:</strong> <span id="file-rows"></span> &nbsp;|&nbsp; <strong>Columns:</strong> <span id="file-cols"></span></p>
-            <p id="class-warning" hidden><strong>Reminder:</strong> Inspect class balance after training to confirm SMOTE results.</p>
-        </div>
-        <div class="button-row">
-            <button id="check-status">Check Server Status</button>
+    <main>
+        <section id="upload-section">
+            <h2>1 · Upload Dataset</h2>
+            <p class="card-description">
+                Supply a CSV file that mirrors the NSL-KDD / CDD feature layout. The server strips duplicates,
+                standardises columns, and records class distribution before training.
+            </p>
+            <div class="upload-area" id="dropzone">
+                <input type="file" id="file-input" accept=".csv" hidden>
+                <strong>Drag a CSV here or click to browse</strong>
+                <p id="upload-hint">No file selected</p>
+            </div>
+            <div class="status-bar" id="upload-status"></div>
+        </section>
+
+        <section id="train-section">
+            <h2>2 · Train Models</h2>
+            <p class="card-description">
+                Once a dataset is uploaded, launch training to fit the Random Forest, SVM, and MLP classifiers with
+                SMOTE balancing, scaling, and encoded categorical features. Results include accuracy, confusion
+                matrices, and class frequency diagnostics.
+            </p>
             <button id="train-btn" disabled>Train Models</button>
-        </div>
-        <div id="status-log" class="log" hidden></div>
-    </section>
+            <div class="status-bar" id="train-status"></div>
+            <div class="results-grid" id="results-grid"></div>
+        </section>
 
-    <section>
-        <h2>2. Training Overview</h2>
-        <div id="training-overview" hidden>
-            <div class="card-title">Class Distribution</div>
-            <div id="class-distribution" class="grid-two"></div>
-            <div class="card-title" style="margin-top:1.5rem;">Model Benchmark Summary</div>
-            <div id="model-summary" class="grid-two"></div>
-        </div>
-        <p id="training-placeholder">Upload a dataset and trigger training to see benchmarking metrics.</p>
-    </section>
+        <section id="predict-section">
+            <h2>3 · Manual Prediction</h2>
+            <p class="card-description">
+                After training, populate each feature and choose an estimator to classify a single network event. Use
+                the feature list generated from your dataset; leave categorical values as their original labels.
+            </p>
+            <form class="prediction-form" id="prediction-form">
+                <label>
+                    Model
+                    <select id="model-select" name="model">
+                        <option value="random_forest">Random Forest</option>
+                        <option value="svm">Support Vector Machine</option>
+                        <option value="neural_network">Neural Network</option>
+                    </select>
+                </label>
+                <div id="feature-fields"></div>
+                <button type="submit" id="predict-btn" disabled>Detect Attack</button>
+            </form>
+            <div id="prediction-output"></div>
+            <p class="small-print" id="feature-hint">
+                Train the models to populate the feature inputs automatically. Fields accept either numeric values or
+                raw categorical labels (the backend reuses the dataset encoders).
+            </p>
+        </section>
+    </main>
 
-    <section>
-        <h2>3. Detailed Model Diagnostics</h2>
-        <div id="model-details"></div>
-        <p id="details-placeholder">After training, expanded accuracy reports, confusion matrices, and cross-validation diagnostics will appear here.</p>
-    </section>
+    <script>
+        const uploadStatus = document.getElementById('upload-status');
+        const trainStatus = document.getElementById('train-status');
+        const resultsGrid = document.getElementById('results-grid');
+        const predictionForm = document.getElementById('prediction-form');
+        const predictBtn = document.getElementById('predict-btn');
+        const predictionOutput = document.getElementById('prediction-output');
+        const featureFields = document.getElementById('feature-fields');
+        const modelSelect = document.getElementById('model-select');
+        const trainButton = document.getElementById('train-btn');
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const uploadHint = document.getElementById('upload-hint');
 
-    <section>
-        <h2>4. Manual Prediction Sandbox</h2>
-        <p>Provide feature values as JSON. Keys must match the training feature names exactly. Unknown categorical values default to 0.</p>
-        <label for="model-select" class="card-title" style="display:block;margin-bottom:0.5rem;">Model</label>
-        <select id="model-select" disabled>
-            <option value="random_forest">Random Forest</option>
-            <option value="svm">Support Vector Machine</option>
-            <option value="neural_network">Neural Network</option>
-        </select>
-        <label for="feature-json" class="card-title" style="display:block;margin:1rem 0 0.5rem;">Feature payload</label>
-        <textarea id="feature-json" placeholder='{"duration": 0, "protocol_type": "tcp", ...}'></textarea>
-        <div class="button-row" style="margin-top:1rem;">
-            <button id="predict-btn" disabled>Run Prediction</button>
-            <button id="reset-form" type="button">Reset</button>
-        </div>
-        <div id="prediction-result" class="log" hidden></div>
-    </section>
-</main>
+        const state = {
+            datasetInfo: null,
+            training: null,
+            features: [],
+        };
 
-<footer>
-    <p>Need help? Review the README for setup, dataset preparation, and troubleshooting tips.</p>
-</footer>
-
-<script>
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('file-input');
-    const uploadInfo = document.getElementById('upload-info');
-    const datasetStatus = document.getElementById('dataset-status');
-    const datasetStateText = document.getElementById('dataset-state-text');
-    const fileName = document.getElementById('file-name');
-    const fileRows = document.getElementById('file-rows');
-    const fileCols = document.getElementById('file-cols');
-    const trainBtn = document.getElementById('train-btn');
-    const statusLog = document.getElementById('status-log');
-    const checkStatusBtn = document.getElementById('check-status');
-    const trainingPlaceholder = document.getElementById('training-placeholder');
-    const trainingOverview = document.getElementById('training-overview');
-    const classDistributionContainer = document.getElementById('class-distribution');
-    const modelSummaryContainer = document.getElementById('model-summary');
-    const modelDetails = document.getElementById('model-details');
-    const detailsPlaceholder = document.getElementById('details-placeholder');
-    const predictBtn = document.getElementById('predict-btn');
-    const predictionResult = document.getElementById('prediction-result');
-    const featureJson = document.getElementById('feature-json');
-    const modelSelect = document.getElementById('model-select');
-    const resetFormBtn = document.getElementById('reset-form');
-    const classWarning = document.getElementById('class-warning');
-
-    let availableModels = ['random_forest', 'svm', 'neural_network'];
-
-    const setStatus = (text, state = 'idle') => {
-        datasetStateText.textContent = text;
-        datasetStatus.dataset.state = state;
-    };
-
-    const appendLog = (message, type = 'info') => {
-        const now = new Date().toLocaleTimeString();
-        statusLog.hidden = false;
-        statusLog.insertAdjacentHTML('afterbegin', `<p>[${now}] <span class="pill ${type === 'error' ? 'danger' : 'success'}">${type.toUpperCase()}</span> ${message}</p>`);
-    };
-
-    const renderClassDistribution = (distribution) => {
-        classDistributionContainer.innerHTML = '';
-        const entries = Object.entries(distribution);
-        if (!entries.length) {
-            classDistributionContainer.innerHTML = '<p>No class distribution data available.</p>';
-            return;
+        function setUploadStatus(message, type = 'info') {
+            uploadStatus.innerHTML = '';
+            const chip = document.createElement('span');
+            chip.className = 'status-chip ' + (type === 'success' ? 'success' : type === 'error' ? 'danger' : 'warning');
+            chip.textContent = message;
+            uploadStatus.appendChild(chip);
         }
-        entries.forEach(([label, count]) => {
-            const card = document.createElement('div');
-            card.style.background = 'var(--card)';
-            card.style.borderRadius = '14px';
-            card.style.padding = '1rem 1.2rem';
-            card.style.border = '1px solid rgba(0, 209, 255, 0.12)';
-            card.innerHTML = `
-                <div class="card-title" style="margin-bottom:0.4rem;">${label}</div>
-                <div style="font-size:1.6rem;font-weight:700;">${count.toLocaleString()}</div>
-            `;
-            classDistributionContainer.appendChild(card);
-        });
-        classWarning.hidden = false;
-    };
 
-    const renderModelSummary = (results) => {
-        modelSummaryContainer.innerHTML = '';
-        Object.entries(results).forEach(([model, metrics]) => {
-            const card = document.createElement('div');
-            card.style.background = 'var(--card)';
-            card.style.borderRadius = '14px';
-            card.style.padding = '1rem 1.2rem';
-            card.style.border = '1px solid rgba(0, 209, 255, 0.12)';
-            const accuracy = metrics.accuracy !== undefined ? (metrics.accuracy * 100).toFixed(2) + '%' : 'N/A';
-            const trainAccuracy = metrics.train_accuracy !== undefined ? (metrics.train_accuracy * 100).toFixed(2) + '%' : 'N/A';
-            let cvText = 'n/a';
-            if (metrics.cross_val_accuracy && metrics.cross_val_accuracy.mean !== undefined) {
-                const mean = (metrics.cross_val_accuracy.mean * 100).toFixed(2);
-                const std = (metrics.cross_val_accuracy.std * 100).toFixed(2);
-                cvText = `${mean}% ± ${std}`;
-            } else if (metrics.cross_val_accuracy && metrics.cross_val_accuracy.error) {
-                cvText = metrics.cross_val_accuracy.error;
-            }
-            card.innerHTML = `
-                <div class="card-title" style="margin-bottom:0.6rem;">${model.replace(/_/g, ' ')}</div>
-                <div class="metric"><small>Accuracy</small><span>${accuracy}</span></div>
-                <div class="metric"><small>Training Accuracy</small><span>${trainAccuracy}</span></div>
-                <div class="metric"><small>Cross-val</small><span>${cvText}</span></div>
-            `;
-            modelSummaryContainer.appendChild(card);
-        });
-    };
-
-    const renderClassificationReport = (report) => {
-        const headers = ['Class', 'Precision', 'Recall', 'F1-score', 'Support'];
-        const rows = Object.entries(report)
-            .filter(([key]) => !['accuracy', 'macro avg', 'weighted avg'].includes(key))
-            .map(([label, metrics]) => `
-                <tr>
-                    <td>${label}</td>
-                    <td>${(metrics.precision * 100).toFixed(2)}%</td>
-                    <td>${(metrics.recall * 100).toFixed(2)}%</td>
-                    <td>${(metrics['f1-score'] * 100).toFixed(2)}%</td>
-                    <td>${metrics.support}</td>
-                </tr>
-            `).join('');
-        const summaryRows = ['macro avg', 'weighted avg'].map((label) => {
-            const metrics = report[label];
-            if (!metrics) return '';
-            return `
-                <tr>
-                    <td>${label}</td>
-                    <td>${(metrics.precision * 100).toFixed(2)}%</td>
-                    <td>${(metrics.recall * 100).toFixed(2)}%</td>
-                    <td>${(metrics['f1-score'] * 100).toFixed(2)}%</td>
-                    <td>${metrics.support}</td>
-                </tr>
-            `;
-        }).join('');
-        return `
-            <table>
-                <thead>
-                    <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-                </thead>
-                <tbody>${rows}${summaryRows}</tbody>
-            </table>
-        `;
-    };
-
-    const renderConfusionMatrix = (matrix) => {
-        if (!Array.isArray(matrix) || !matrix.length) {
-            return '<p>No confusion matrix provided.</p>';
+        function setTrainStatus(message, type = 'info') {
+            trainStatus.innerHTML = '';
+            const chip = document.createElement('span');
+            chip.className = 'status-chip ' + (type === 'success' ? 'success' : type === 'error' ? 'danger' : 'warning');
+            chip.textContent = message;
+            trainStatus.appendChild(chip);
         }
-        const headers = matrix[0].map((_, idx) => `<th>Pred ${idx}</th>`).join('');
-        const rows = matrix.map((row, idx) => `
-            <tr>
-                <th>Actual ${idx}</th>
-                ${row.map(cell => `<td>${cell}</td>`).join('')}
-            </tr>
-        `).join('');
-        return `
-            <table>
+
+        function percent(value) {
+            if (typeof value !== 'number' || Number.isNaN(value)) return '—';
+            return `${(value * 100).toFixed(2)}%`;
+        }
+
+        function renderResults(results, distribution) {
+            resultsGrid.innerHTML = '';
+            const summaryTable = document.createElement('table');
+            summaryTable.innerHTML = `
                 <thead>
                     <tr>
-                        <th></th>
-                        ${headers}
+                        <th>Model</th>
+                        <th>Test Accuracy</th>
+                        <th>Train Accuracy</th>
                     </tr>
                 </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        `;
-    };
-
-    const renderModelDetails = (results) => {
-        modelDetails.innerHTML = '';
-        Object.entries(results).forEach(([model, metrics]) => {
-            const wrapper = document.createElement('div');
-            wrapper.style.marginBottom = '2.5rem';
-            wrapper.innerHTML = `
-                <h3 style="text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.8rem;">${model.replace(/_/g, ' ')}</h3>
-                <div style="display:grid;gap:1.25rem;">
-                    <div>
-                        <div class="card-title">Classification Report</div>
-                        ${metrics.classification_report ? renderClassificationReport(metrics.classification_report) : '<p>Report unavailable.</p>'}
-                    </div>
-                    <div>
-                        <div class="card-title">Confusion Matrix</div>
-                        ${renderConfusionMatrix(metrics.confusion_matrix)}
-                    </div>
-                </div>
+                <tbody>
+                    ${Object.entries(results).map(([name, stats]) => `
+                        <tr>
+                            <td>${formatModelName(name)}</td>
+                            <td>${percent(stats.accuracy)}</td>
+                            <td>${percent(stats.train_accuracy)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
             `;
-            modelDetails.appendChild(wrapper);
-        });
-    };
+            resultsGrid.appendChild(summaryTable);
 
-    const resetPrediction = () => {
-        featureJson.value = '';
-        predictionResult.hidden = true;
-        predictionResult.innerHTML = '';
-    };
+            Object.entries(results).forEach(([name, stats]) => {
+                const card = document.createElement('article');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <h3>${formatModelName(name)}</h3>
+                    <div class="metric-row">
+                        <span class="metric">Accuracy: ${percent(stats.accuracy)}</span>
+                        <span class="metric">Train Accuracy: ${percent(stats.train_accuracy)}</span>
+                        ${(() => {
+                            const cv = stats.cross_val_accuracy || {};
+                            if (typeof cv.mean !== 'number') return '';
+                            const stdText = typeof cv.std === 'number' ? `${(cv.std * 100).toFixed(2)}%` : '—';
+                            return `<span class="metric">CV Mean: ${percent(cv.mean)} ± ${stdText}</span>`;
+                        })()
+                            : ''}
+                    </div>
+                `;
 
-    const parseJsonSafe = (value) => {
-        try {
-            return JSON.parse(value);
-        } catch (error) {
-            throw new Error('Invalid JSON payload. Ensure keys are quoted and values use valid JSON types.');
-        }
-    };
+                if (stats.confusion_matrix) {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th colspan="${stats.confusion_matrix.length}">Confusion Matrix</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stats.confusion_matrix.map(row => `
+                                <tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    card.appendChild(table);
+                }
 
-    const updateModelOptions = (models) => {
-        availableModels = models && models.length ? models : availableModels;
-        modelSelect.innerHTML = availableModels.map((name) => {
-            const label = name.replace(/_/g, ' ');
-            return `<option value="${name}">${label.charAt(0).toUpperCase() + label.slice(1)}</option>`;
-        }).join('');
-        modelSelect.disabled = false;
-    };
+                if (stats.classification_report) {
+                    const report = document.createElement('pre');
+                    const lines = Object.entries(stats.classification_report)
+                        .filter(([label]) => !['accuracy', 'macro avg', 'weighted avg'].includes(label) || typeof stats.classification_report[label] === 'object')
+                        .map(([label, metrics]) => {
+                            if (typeof metrics !== 'object') return null;
+                            const precision = (metrics.precision * 100).toFixed(2);
+                            const recall = (metrics.recall * 100).toFixed(2);
+                            const f1 = (metrics['f1-score'] * 100).toFixed(2);
+                            return `${label.padEnd(12)}  P:${precision}%  R:${recall}%  F1:${f1}%`;
+                        })
+                        .filter(Boolean)
+                        .join('\n');
+                    report.textContent = `Precision / Recall / F1\n${lines}`;
+                    card.appendChild(report);
+                }
 
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    dropzone.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        dropzone.classList.add('dragover');
-    });
-
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-
-    dropzone.addEventListener('drop', (event) => {
-        event.preventDefault();
-        dropzone.classList.remove('dragover');
-        if (event.dataTransfer.files.length) {
-            fileInput.files = event.dataTransfer.files;
-            handleFileUpload(event.dataTransfer.files[0]);
-        }
-    });
-
-    fileInput.addEventListener('change', (event) => {
-        if (event.target.files.length) {
-            handleFileUpload(event.target.files[0]);
-        }
-    });
-
-    const handleFileUpload = async (file) => {
-        if (!file.name.endsWith('.csv')) {
-            appendLog('Only CSV files are supported.', 'error');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        setStatus('Uploading…', 'warning');
-        trainBtn.disabled = true;
-        statusLog.hidden = true;
-
-        try {
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
+                resultsGrid.appendChild(card);
             });
 
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.error || 'Upload failed');
+            if (distribution) {
+                const distCard = document.createElement('article');
+                distCard.className = 'result-card';
+                distCard.innerHTML = '<h3>Class Distribution</h3>';
+                const table = document.createElement('table');
+                table.innerHTML = `
+                    <thead><tr><th>Label</th><th>Samples</th></tr></thead>
+                    <tbody>
+                        ${Object.entries(distribution).map(([label, count]) => `
+                            <tr><td>${label}</td><td>${count}</td></tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                distCard.appendChild(table);
+                resultsGrid.appendChild(distCard);
             }
-
-            uploadInfo.hidden = false;
-            fileName.textContent = payload.filename;
-            fileRows.textContent = payload.rows.toLocaleString();
-            fileCols.textContent = payload.columns;
-
-            setStatus('Dataset loaded', 'ready');
-            trainBtn.disabled = false;
-            appendLog(`Upload succeeded: ${payload.filename} (${payload.rows} rows)`);
-        } catch (error) {
-            setStatus('Upload failed', 'error');
-            appendLog(error.message, 'error');
         }
-    };
 
-    checkStatusBtn.addEventListener('click', async () => {
-        try {
-            const response = await fetch('/status');
-            const payload = await response.json();
-            const modelsInfo = payload.available_models && payload.available_models.length ? payload.available_models.join(', ') : 'none';
-            appendLog(`Server ready. Dataset loaded: ${payload.dataset_loaded}. Models: ${modelsInfo}.`);
-            if (payload.available_models) {
-                updateModelOptions(payload.available_models);
+        function formatModelName(key) {
+            switch (key) {
+                case 'random_forest': return 'Random Forest';
+                case 'svm': return 'Support Vector Machine';
+                case 'neural_network': return 'Neural Network';
+                default: return key;
             }
-        } catch (error) {
-            appendLog(`Status check failed: ${error.message}`, 'error');
         }
-    });
 
-    trainBtn.addEventListener('click', async () => {
-        trainBtn.disabled = true;
-        setStatus('Training in progress…', 'warning');
-        appendLog('Training started. This may take a few minutes.');
-        predictionResult.hidden = true;
-        detailsPlaceholder.hidden = true;
-        trainingPlaceholder.hidden = true;
-
-        try {
-            const response = await fetch('/train', { method: 'POST' });
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.error || 'Training failed');
+        function buildFeatureInputs(features) {
+            featureFields.innerHTML = '';
+            if (!features || !features.length) {
+                predictBtn.disabled = true;
+                return;
             }
 
-            setStatus('Models trained', 'ready');
-            appendLog('Training completed successfully.');
+            features.forEach((feature) => {
+                const wrapper = document.createElement('label');
+                wrapper.textContent = feature;
+                const input = document.createElement('input');
+                input.name = feature;
+                input.placeholder = 'Enter value';
+                input.required = true;
+                wrapper.appendChild(input);
+                featureFields.appendChild(wrapper);
+            });
 
-            const { results, class_distribution } = payload;
-            trainingOverview.hidden = false;
-            renderClassDistribution(class_distribution || {});
-            renderModelSummary(results || {});
-            renderModelDetails(results || {});
-            detailsPlaceholder.hidden = true;
-            trainingPlaceholder.hidden = true;
+            predictBtn.disabled = false;
+        }
 
-            if (payload.results) {
-                const trainedModels = Object.keys(payload.results);
-                updateModelOptions(trainedModels);
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            setUploadStatus('Uploading dataset…');
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Upload failed');
+                state.datasetInfo = data;
+                uploadHint.textContent = `${data.filename} · ${data.rows} rows × ${data.columns} columns`;
+                setUploadStatus('Dataset ready. Proceed to training.', 'success');
+                trainButton.disabled = false;
+            } catch (error) {
+                console.error(error);
+                setUploadStatus(error.message, 'error');
+                trainButton.disabled = true;
+            }
+        }
+
+        async function trainModels() {
+            setTrainStatus('Training models…');
+            trainButton.disabled = true;
+            resultsGrid.innerHTML = '';
+
+            try {
+                const response = await fetch('/train', {
+                    method: 'POST',
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Training failed');
+
+                state.training = data;
+                state.features = data.feature_columns || [];
+
+                setTrainStatus(data.message || 'Training complete.', 'success');
+                renderResults(data.results, data.class_distribution);
+                buildFeatureInputs(state.features);
+                predictionOutput.innerHTML = '';
+            } catch (error) {
+                console.error(error);
+                setTrainStatus(error.message, 'error');
+                trainButton.disabled = false;
+            }
+        }
+
+        async function submitPrediction(event) {
+            event.preventDefault();
+            if (!state.features.length) return;
+
+            predictBtn.disabled = true;
+            predictionOutput.innerHTML = '';
+
+            const features = {};
+            state.features.forEach((feature) => {
+                const value = predictionForm.elements[feature]?.value ?? '';
+                const numeric = Number(value);
+                features[feature] = value === '' ? '' : (Number.isFinite(numeric) && value.trim() !== '' ? numeric : value);
+            });
+
+            const payload = {
+                model: modelSelect.value,
+                features,
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Prediction failed');
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'prediction-result ' + (data.is_attack ? 'attack' : 'safe');
+                const confidenceText = typeof data.confidence === 'number'
+                    ? `${Math.round(data.confidence * 100)}% confidence`
+                    : 'confidence unavailable';
+                resultDiv.textContent = data.is_attack
+                    ? `⚠️ Attack detected: ${data.prediction} (${confidenceText})`
+                    : `✅ Normal traffic (${confidenceText})`;
+                predictionOutput.appendChild(resultDiv);
+            } catch (error) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'prediction-result attack';
+                resultDiv.textContent = error.message;
+                predictionOutput.appendChild(resultDiv);
+            } finally {
                 predictBtn.disabled = false;
             }
-            trainBtn.disabled = false;
-        } catch (error) {
-            appendLog(error.message, 'error');
-            setStatus('Training failed', 'error');
-            trainBtn.disabled = false;
-            trainingPlaceholder.hidden = false;
-            detailsPlaceholder.hidden = false;
-            predictBtn.disabled = true;
         }
-    });
 
-    predictBtn.addEventListener('click', async () => {
-        try {
-            const features = parseJsonSafe(featureJson.value.trim());
-            const selectedModel = modelSelect.value;
-            const response = await fetch('/predict', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: selectedModel, features })
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.error || 'Prediction failed');
+        // Event wiring
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropzone.classList.remove('dragover');
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                uploadHint.textContent = file.name;
+                uploadFile(file);
             }
+        });
 
-            predictionResult.hidden = false;
-            const badgeClass = payload.is_attack ? 'danger' : 'success';
-            const badgeLabel = payload.is_attack ? 'Attack Detected' : 'Normal Traffic';
-            const confidenceText = payload.confidence !== null && payload.confidence !== undefined
-                ? `${(payload.confidence * 100).toFixed(2)}%`
-                : 'N/A';
-            predictionResult.innerHTML = `
-                <p><strong>Prediction:</strong> ${payload.prediction}</p>
-                <p><span class="pill ${badgeClass}">${badgeLabel}</span></p>
-                <p><strong>Confidence:</strong> ${confidenceText}</p>
-            `;
-        } catch (error) {
-            predictionResult.hidden = false;
-            predictionResult.innerHTML = `<p class="pill danger">${error.message}</p>`;
-        }
-    });
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (file) {
+                uploadHint.textContent = file.name;
+                uploadFile(file);
+            }
+        });
 
-    resetFormBtn.addEventListener('click', resetPrediction);
-</script>
+        trainButton.addEventListener('click', trainModels);
+        predictionForm.addEventListener('submit', submitPrediction);
+    </script>
 </body>
 </html>

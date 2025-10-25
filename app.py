@@ -276,6 +276,8 @@ def train():
             'success': True,
             'results': results,
             'class_distribution': {str(k): int(v) for k, v in class_distribution.items()},
+            'feature_columns': feature_columns,
+            'attack_types': [str(v) for v in attack_types] if attack_types is not None else [],
             'message': 'Models trained successfully with class balancing'
         })
     
