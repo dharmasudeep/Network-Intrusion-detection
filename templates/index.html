@@ -248,6 +248,40 @@
             color: var(--text-soft);
         }
 
+        #feature-fields {
+            display: grid;
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        #feature-fields::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #feature-fields::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+        }
+
+        .feature-field {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .feature-name {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .feature-note {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
         .prediction-form input,
         .prediction-form select,
         .prediction-form textarea {
@@ -275,6 +309,14 @@
         .prediction-result.attack {
             background: rgba(248, 113, 113, 0.18);
             color: var(--danger);
+        }
+
+        .manual-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
         }
 
         code {
@@ -350,7 +392,10 @@
                     </select>
                 </label>
                 <div id="feature-fields"></div>
-                <button type="submit" id="predict-btn" disabled>Detect Attack</button>
+                <div class="manual-controls">
+                    <button type="button" class="ghost-button" id="prefill-btn" disabled>Use example values</button>
+                    <button type="submit" id="predict-btn" disabled>Detect Attack</button>
+                </div>
             </form>
             <div id="prediction-output"></div>
             <p class="small-print" id="feature-hint">
@@ -373,12 +418,17 @@
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file-input');
         const uploadHint = document.getElementById('upload-hint');
+        const prefillBtn = document.getElementById('prefill-btn');
+        const featureHint = document.getElementById('feature-hint');
 
         const state = {
             datasetInfo: null,
             training: null,
             features: [],
+            featureMetadata: {},
         };
+
+        updateFeatureHint([]);
 
         function setUploadStatus(message, type = 'info') {
             uploadStatus.innerHTML = '';
@@ -506,25 +556,149 @@
             }
         }
 
-        function buildFeatureInputs(features) {
+        function buildFeatureInputs(features, metadata = {}) {
             featureFields.innerHTML = '';
-            if (!features || !features.length) {
+            if (!Array.isArray(features) || !features.length) {
                 predictBtn.disabled = true;
+                if (prefillBtn) prefillBtn.disabled = true;
+                updateFeatureHint([]);
                 return;
             }
 
-            features.forEach((feature) => {
+            const hasExampleValues = features.some((feature) => {
+                const info = metadata?.[feature];
+                return info && info.example !== null && info.example !== undefined && `${info.example}`.trim() !== '';
+            });
+
+            features.forEach((feature, index) => {
+                const info = metadata?.[feature] || {};
                 const wrapper = document.createElement('label');
-                wrapper.textContent = feature;
+                wrapper.className = 'feature-field';
+
+                const name = document.createElement('span');
+                name.className = 'feature-name';
+                name.textContent = feature;
+                wrapper.appendChild(name);
+
                 const input = document.createElement('input');
                 input.name = feature;
-                input.placeholder = 'Enter value';
                 input.required = true;
+
+                let noteText = '';
+
+                if (info.type === 'numeric') {
+                    input.type = 'number';
+                    input.step = 'any';
+                    const descriptors = [];
+                    if (typeof info.min === 'number' && typeof info.max === 'number') {
+                        descriptors.push(`range ${info.min} – ${info.max}`);
+                    }
+                    if (typeof info.mean === 'number') {
+                        descriptors.push(`mean ${info.mean.toFixed(2)}`);
+                    }
+                    input.placeholder = descriptors.length
+                        ? `Enter value (${descriptors.join(', ')})`
+                        : 'Enter numeric value';
+                    noteText = descriptors.length
+                        ? `Numeric · ${descriptors.join(' · ')}`
+                        : 'Numeric feature';
+                } else if (info.type === 'categorical') {
+                    input.type = 'text';
+                    const categories = Array.isArray(info.categories) ? info.categories.filter(Boolean) : [];
+                    if (categories.length) {
+                        const safeId = `categories-${feature.replace(/[^a-zA-Z0-9_-]/g, '-')}-${index}`;
+                        input.setAttribute('list', safeId);
+                        input.placeholder = `e.g. ${categories[0]}`;
+                        const datalist = document.createElement('datalist');
+                        datalist.id = safeId;
+                        categories.forEach((category) => {
+                            const option = document.createElement('option');
+                            option.value = category;
+                            datalist.appendChild(option);
+                        });
+                        wrapper.appendChild(datalist);
+                    } else {
+                        input.placeholder = 'Enter category';
+                    }
+                    const cardinality = typeof info.cardinality === 'number' && info.cardinality > 0
+                        ? `${info.cardinality} unique` : 'categorical';
+                    noteText = `Categorical · ${cardinality}`;
+                } else {
+                    input.type = 'text';
+                    input.placeholder = 'Enter value';
+                }
+
                 wrapper.appendChild(input);
+
+                if (noteText) {
+                    const note = document.createElement('span');
+                    note.className = 'feature-note';
+                    note.textContent = noteText;
+                    wrapper.appendChild(note);
+                }
+
                 featureFields.appendChild(wrapper);
             });
 
             predictBtn.disabled = false;
+            if (prefillBtn) {
+                prefillBtn.disabled = !hasExampleValues;
+                prefillBtn.title = hasExampleValues
+                    ? 'Populate the inputs with an example row from the dataset'
+                    : 'Example values unavailable for this dataset';
+            }
+            updateFeatureHint(features, metadata);
+        }
+
+        function updateFeatureHint(features, metadata = {}) {
+            if (!featureHint) return;
+            if (!Array.isArray(features) || !features.length) {
+                featureHint.textContent = 'Train the models to populate the feature inputs automatically. Fields accept either numeric values or raw categorical labels (the backend reuses the dataset encoders).';
+                return;
+            }
+
+            const numericCount = features.filter((feature) => metadata?.[feature]?.type === 'numeric').length;
+            const categoricalCount = features.filter((feature) => metadata?.[feature]?.type === 'categorical').length;
+            const summaryParts = [];
+            if (numericCount) summaryParts.push(`${numericCount} numeric`);
+            if (categoricalCount) summaryParts.push(`${categoricalCount} categorical`);
+
+            let summary = summaryParts.join(', ');
+            if (!summary) summary = 'mixed types';
+
+            featureHint.textContent = `Provide values for ${features.length} features (${summary}). Use raw labels for categorical fields and decimal numbers where required.`;
+            if (prefillBtn && !prefillBtn.disabled) {
+                featureHint.textContent += ' Click “Use example values” to load a known record for quick testing.';
+            }
+        }
+
+        function prefillExampleValues() {
+            if (!Array.isArray(state.features) || !state.features.length) return false;
+
+            let filled = false;
+            state.features.forEach((feature) => {
+                const input = predictionForm.elements[feature];
+                const info = state.featureMetadata?.[feature] || {};
+                if (!input || info.example === null || info.example === undefined) return;
+                input.value = info.example;
+                filled = true;
+            });
+
+            return filled;
+        }
+
+        async function bootstrapManualPrediction() {
+            try {
+                const response = await fetch('/feature-metadata');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!Array.isArray(data.feature_columns) || !data.feature_columns.length) return;
+                state.features = data.feature_columns;
+                state.featureMetadata = data.feature_metadata || {};
+                buildFeatureInputs(state.features, state.featureMetadata);
+            } catch (error) {
+                console.debug('Feature metadata unavailable on load', error);
+            }
         }
 
         async function uploadFile(file) {
@@ -564,10 +738,11 @@
 
                 state.training = data;
                 state.features = data.feature_columns || [];
+                state.featureMetadata = data.feature_metadata || {};
 
                 setTrainStatus(data.message || 'Training complete.', 'success');
                 renderResults(data.results, data.class_distribution);
-                buildFeatureInputs(state.features);
+                buildFeatureInputs(state.features, state.featureMetadata);
                 predictionOutput.innerHTML = '';
             } catch (error) {
                 console.error(error);
@@ -585,9 +760,20 @@
 
             const features = {};
             state.features.forEach((feature) => {
-                const value = predictionForm.elements[feature]?.value ?? '';
-                const numeric = Number(value);
-                features[feature] = value === '' ? '' : (Number.isFinite(numeric) && value.trim() !== '' ? numeric : value);
+                const rawValue = predictionForm.elements[feature]?.value ?? '';
+                const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+                if (value === '') {
+                    features[feature] = '';
+                    return;
+                }
+
+                const info = state.featureMetadata?.[feature];
+                if (info?.type === 'numeric') {
+                    const numeric = Number(value);
+                    features[feature] = Number.isFinite(numeric) ? numeric : value;
+                } else {
+                    features[feature] = value;
+                }
             });
 
             const payload = {
@@ -624,6 +810,23 @@
         }
 
         // Event wiring
+        bootstrapManualPrediction();
+
+        if (prefillBtn) {
+            prefillBtn.addEventListener('click', () => {
+                const filled = prefillExampleValues();
+                if (filled) {
+                    if (featureHint) {
+                        featureHint.textContent = 'Example values inserted from the dataset. Adjust any field before detecting.';
+                        setTimeout(() => updateFeatureHint(state.features, state.featureMetadata), 4500);
+                    }
+                } else {
+                    prefillBtn.disabled = true;
+                    updateFeatureHint(state.features, state.featureMetadata);
+                }
+            });
+        }
+
         dropzone.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
