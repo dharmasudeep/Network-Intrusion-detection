@@ -1,0 +1,172 @@
+Network Attack Patterns Reference Guide
+====================================
+
+1. DoS (Denial of Service) Attacks
+---------------------------------
+a) Neptune Attack:
+   - duration: 0-5 seconds
+   - protocol_type: tcp
+   - service: http/private
+   - src_bytes: 0-100
+   - dst_bytes: 0-100
+   - count: 300-511
+   - serror_rate: 0.8-1.0
+   - same_srv_rate: 0.8-1.0
+
+b) Smurf Attack:
+   - protocol_type: icmp
+   - service: ecr_i
+   - count: 200-511
+   - serror_rate: 0.8-1.0
+   - same_srv_rate: 0.8-1.0
+
+2. Probe Attacks
+---------------
+a) Portsweep:
+   - duration: 0-10 seconds
+   - protocol_type: tcp
+   - service: private/eco_i
+   - src_bytes: 0-50
+   - count: 50-300
+   - srv_count: 1-10
+   - serror_rate: 0.5-1.0
+   - diff_srv_rate: 0.5-1.0
+
+b) IPSweep:
+   - protocol_type: icmp
+   - src_bytes: 0-50
+   - count: 50-300
+   - diff_srv_rate: 0.5-1.0
+
+3. R2L (Remote to Local) Attacks
+-------------------------------
+a) Warezclient:
+   - duration: 0-100
+   - protocol_type: tcp
+   - service: ftp
+   - src_bytes: 100-10000
+   - dst_bytes: 0-1000
+   - logged_in: 1
+   - num_file_creations: 0-10
+   - num_access_files: 0-10
+
+b) Guess Password:
+   - service: ftp/telnet
+   - num_failed_logins: 1-5
+   - logged_in: 0/1
+   - count: 1-20
+   - srv_count: 1-10
+
+4. U2R (User to Root) Attacks
+----------------------------
+a) Buffer Overflow:
+   - duration: 0-200
+   - protocol_type: tcp
+   - service: telnet/ftp
+   - src_bytes: 100-5000
+   - num_compromised: 1-10
+   - root_shell: 1
+   - num_root: 1-100
+   - num_file_creations: 1-20
+
+b) Rootkit:
+   - service: telnet/ssh
+   - logged_in: 1
+   - root_shell: 1
+   - su_attempted: 1-2
+   - num_root: 50-100
+   - num_file_creations: 1-20
+   - num_shells: 1-5
+
+Testing Guidelines
+-----------------
+1. Normal Traffic (Baseline):
+   - duration: 0-300
+   - protocol_type: tcp/udp/icmp
+   - service: http/ftp/smtp
+   - src_bytes: 50-10000
+   - dst_bytes: 50-10000
+   - count: 1-50
+   - serror_rate: 0.0-0.1
+   - same_srv_rate: 0.7-1.0
+
+2. Feature Combinations:
+   - Mix high connection counts with normal error rates
+   - Combine root access with file operations
+   - Test multiple failed logins with successful access
+
+3. Edge Cases:
+   - Very short duration (<1s) with high traffic
+   - Long duration (>1000s) with low traffic
+   - Maximum values for counts (511)
+   - 100% error rates
+
+Key Indicators by Attack Type
+---------------------------
+1. DoS:
+   - High connection counts
+   - High error rates
+   - Short duration
+   - Similar service patterns
+
+2. Probe:
+   - Medium connection counts
+   - Various services
+   - High diff_srv_rate
+   - Multiple protocols
+
+3. R2L:
+   - Failed logins
+   - File operations
+   - FTP/Telnet services
+   - Normal error rates
+
+4. U2R:
+   - Root shell access
+   - High num_root
+   - File creations
+   - Shell access
+
+Testing Strategy
+---------------
+1. Start with clear examples of each attack type
+2. Mix features from different attacks
+3. Test edge cases and boundary values
+4. Include normal traffic patterns
+5. Vary the intensity of attacks
+
+Example Test Sequences
+---------------------
+1. Progressive DoS:
+   Test with increasing count values:
+   - count=100, serror_rate=0.8
+   - count=200, serror_rate=0.9
+   - count=400, serror_rate=1.0
+
+2. Subtle Probe:
+   Test with varying service patterns:
+   - diff_srv_rate=0.6, srv_count=5
+   - diff_srv_rate=0.8, srv_count=8
+   - diff_srv_rate=1.0, srv_count=10
+
+3. R2L Progression:
+   Test with login attempts:
+   - num_failed_logins=2, logged_in=0
+   - num_failed_logins=4, logged_in=0
+   - num_failed_logins=1, logged_in=1
+
+4. U2R Escalation:
+   Test with increasing privileges:
+   - root_shell=0, num_root=0
+   - root_shell=1, num_root=10
+   - root_shell=1, num_root=100
+
+Real-world Testing Tips
+----------------------
+1. Combine multiple attack patterns
+2. Include random variations
+3. Test with different protocols
+4. Mix normal and attack traffic
+5. Use realistic time windows
+6. Test boundary conditions
+7. Verify detection accuracy
