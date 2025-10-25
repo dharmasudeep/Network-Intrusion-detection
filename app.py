@@ -34,11 +34,10 @@ label_encoders = {}
 feature_columns = None
 attack_types = None
 class_distribution = None
-feature_info = {}
 
 def preprocess_data(df):
     """Preprocess the network traffic data"""
-    global scaler, label_encoders, feature_columns, attack_types, class_distribution, feature_info
+    global scaler, label_encoders, feature_columns, attack_types, class_distribution
 
     # Make a copy to avoid mutating the original DataFrame
     df = df.copy()
@@ -71,35 +70,6 @@ def preprocess_data(df):
     X = df.drop(columns=[target_col])
     y = df[target_col]
 
-    # Capture feature metadata before encoding
-    feature_info = {}
-    for col in X.columns:
-        col_series = X[col]
-
-        # Attempt to treat numeric columns appropriately
-        if col_series.dtype != 'object':
-            numeric_series = pd.to_numeric(col_series, errors='coerce')
-            numeric_series = numeric_series.dropna()
-            info = {'type': 'numeric'}
-            if not numeric_series.empty:
-                info['min'] = float(numeric_series.min())
-                info['max'] = float(numeric_series.max())
-                info['mean'] = float(numeric_series.mean())
-                info['median'] = float(numeric_series.median())
-                info['example'] = float(numeric_series.iloc[0])
-            else:
-                info['example'] = None
-            feature_info[col] = info
-        else:
-            series = col_series.dropna().astype(str)
-            info = {
-                'type': 'categorical',
-                'categories': series.value_counts().head(6).index.tolist(),
-                'cardinality': int(series.nunique()) if not series.empty else 0,
-                'example': series.iloc[0] if not series.empty else None
-            }
-            feature_info[col] = info
-
     # Record original class distribution for reporting and debugging
     class_distribution = Counter(y)
 
@@ -129,29 +99,6 @@ def preprocess_data(df):
     label_encoders['target'] = le_target
 
     return X_scaled, y_encoded, X.columns.tolist()
-
-
-def _serialize_metadata(metadata):
-    """Convert feature metadata to JSON-safe primitives."""
-
-    def convert(value):
-        if isinstance(value, (np.floating, float)):
-            if pd.isna(value):
-                return None
-            return float(value)
-        if isinstance(value, (np.integer, int)):
-            return int(value)
-        if isinstance(value, (np.bool_, bool)):
-            return bool(value)
-        if isinstance(value, list):
-            return [convert(v) for v in value]
-        if isinstance(value, dict):
-            return {str(k): convert(v) for k, v in value.items()}
-        if isinstance(value, (str, type(None))):
-            return value
-        return str(value)
-
-    return {str(key): convert(value) for key, value in metadata.items()}
 
 def _make_json_serializable(report):
     """Convert nested classification reports into JSON-serialisable primitives."""
@@ -377,15 +324,12 @@ def train():
             pickle.dump(attack_types, f)
         with open('models/class_distribution.json', 'w') as f:
             json.dump({str(k): int(v) for k, v in class_distribution.items()}, f)
-        with open('models/feature_metadata.json', 'w') as f:
-            json.dump(_serialize_metadata(feature_info), f)
 
         return jsonify({
             'success': True,
             'results': results,
             'class_distribution': {str(k): int(v) for k, v in class_distribution.items()},
             'feature_columns': feature_columns,
-            'feature_metadata': _serialize_metadata(feature_info),
             'message': 'Models trained successfully with class balancing'
         })
     
@@ -457,33 +401,9 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-@app.route('/feature-metadata', methods=['GET'])
-def feature_metadata():
-    """Expose feature names and metadata for manual prediction."""
-    global feature_columns, feature_info
-
-    if not feature_columns:
-        try:
-            load_models()
-        except Exception:
-            pass
-
-    if not feature_columns:
-        return jsonify({
-            'feature_columns': [],
-            'feature_metadata': {}
-        })
-
-    return jsonify({
-        'feature_columns': feature_columns,
-        'feature_metadata': _serialize_metadata(feature_info)
-    })
-
-
 def load_models():
     """Load saved models"""
-    global models, scaler, label_encoders, feature_columns, attack_types, class_distribution, feature_info
+    global models, scaler, label_encoders, feature_columns, attack_types, class_distribution
 
     try:
         with open('models/random_forest.pkl', 'rb') as f:
@@ -508,22 +428,24 @@ def load_models():
         if os.path.exists(distribution_path):
             with open(distribution_path, 'r') as f:
                 class_distribution = json.load(f)
-        metadata_path = 'models/feature_metadata.json'
-        if os.path.exists(metadata_path):
-            with open(metadata_path, 'r') as f:
-                feature_info = json.load(f)
-        else:
-            feature_info = {}
     except FileNotFoundError:
         pass
 
 @app.route('/status')
 def status():
-    """Get system status"""
+    """Get system status and any cached model metadata for manual predictions."""
+
+    # Ensure previously trained artefacts are available after a restart.
+    if not models or scaler is None or feature_columns is None:
+        load_models()
+
     return jsonify({
         'models_trained': len(models) > 0,
-        'available_models': list(models.keys()),
-        'dataset_loaded': 'dataset_path' in session
+        'available_models': sorted(models.keys()),
+        'dataset_loaded': 'dataset_path' in session,
+        'feature_columns': feature_columns or [],
+        'attack_types': attack_types or [],
+        'class_distribution': class_distribution or {}
     })
 
 if __name__ == '__main__':
