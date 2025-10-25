@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -11,6 +11,12 @@ import pickle
 import os
 from werkzeug.utils import secure_filename
 import json
+from collections import Counter
+
+try:
+    from imblearn.over_sampling import SMOTE
+except ImportError:  # pragma: no cover - installed via requirements.txt
+    SMOTE = None
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here-change-in-production'
@@ -27,97 +33,153 @@ scaler = None
 label_encoders = {}
 feature_columns = None
 attack_types = None
+class_distribution = None
 
 def preprocess_data(df):
     """Preprocess the network traffic data"""
-    global scaler, label_encoders, feature_columns, attack_types
-    
-    # Make a copy
+    global scaler, label_encoders, feature_columns, attack_types, class_distribution
+
+    # Make a copy to avoid mutating the original DataFrame
     df = df.copy()
-    
+
     # Remove any unnamed columns
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-    
-    # Assume last column is the label/target
-    if 'label' not in df.columns and 'attack_type' not in df.columns:
-        df.rename(columns={df.columns[-1]: 'label'}, inplace=True)
-    
-    target_col = 'label' if 'label' in df.columns else 'attack_type'
-    
+
+    # Normalise column names (strip whitespace)
+    df.columns = [col.strip() for col in df.columns]
+
+    # Drop duplicate rows to minimise bias caused by repeated entries
+    df.drop_duplicates(inplace=True)
+
+    # Identify target column
+    possible_targets = [
+        'label', 'Label', 'attack_type', 'Attack_type', 'class', 'Class', 'target'
+    ]
+    target_col = next((col for col in possible_targets if col in df.columns), None)
+
+    if target_col is None:
+        # Assume last column is the label/target
+        target_col = df.columns[-1]
+        df.rename(columns={target_col: 'label'}, inplace=True)
+        target_col = 'label'
+
     # Store attack types
     attack_types = df[target_col].unique().tolist()
-    
+
     # Separate features and target
     X = df.drop(columns=[target_col])
     y = df[target_col]
-    
-    # Encode categorical features
+
+    # Record original class distribution for reporting and debugging
+    class_distribution = Counter(y)
+
+    # Encode categorical features & impute missing values
     label_encoders = {}
     for col in X.columns:
         if X[col].dtype == 'object':
+            if X[col].isnull().any():
+                X[col] = X[col].fillna(X[col].mode().iloc[0])
             le = LabelEncoder()
             X[col] = le.fit_transform(X[col].astype(str))
             label_encoders[col] = le
-    
+        else:
+            if X[col].isnull().any():
+                X[col] = X[col].fillna(X[col].median())
+
     # Store feature columns
     feature_columns = X.columns.tolist()
-    
+
     # Scale features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
+
     # Encode target
     le_target = LabelEncoder()
     y_encoded = le_target.fit_transform(y)
     label_encoders['target'] = le_target
-    
+
     return X_scaled, y_encoded, X.columns.tolist()
 
-def train_models(X_train, X_test, y_train, y_test):
-    """Train multiple ML models"""
+def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_train_original):
+    """Train multiple ML models with regularisation and provide diagnostics"""
     results = {}
-    
+
     # Random Forest
     print("Training Random Forest...")
-    rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
-    rf.fit(X_train, y_train)
+    rf = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=18,
+        min_samples_leaf=4,
+        class_weight='balanced_subsample',
+        random_state=42,
+        n_jobs=-1
+    )
+    rf.fit(X_resampled, y_resampled)
     rf_pred = rf.predict(X_test)
+    rf_train_pred = rf.predict(X_train_original)
     models['random_forest'] = rf
-    
+
     results['random_forest'] = {
         'accuracy': float(accuracy_score(y_test, rf_pred)),
+        'train_accuracy': float(accuracy_score(y_train_original, rf_train_pred)),
         'confusion_matrix': confusion_matrix(y_test, rf_pred).tolist(),
         'classification_report': classification_report(y_test, rf_pred, output_dict=True)
     }
-    
+
     # SVM (on a sample for speed)
     print("Training SVM...")
-    sample_size = min(5000, len(X_train))
-    indices = np.random.choice(len(X_train), sample_size, replace=False)
-    svm = SVC(kernel='rbf', random_state=42)
-    svm.fit(X_train[indices], y_train[indices])
+    sample_size = min(7000, len(X_resampled))
+    indices = np.random.choice(len(X_resampled), sample_size, replace=False)
+    svm = SVC(kernel='rbf', class_weight='balanced', probability=True, random_state=42)
+    svm.fit(X_resampled[indices], y_resampled[indices])
     svm_pred = svm.predict(X_test)
+    svm_train_pred = svm.predict(X_train_original)
     models['svm'] = svm
-    
+
     results['svm'] = {
         'accuracy': float(accuracy_score(y_test, svm_pred)),
+        'train_accuracy': float(accuracy_score(y_train_original, svm_train_pred)),
         'confusion_matrix': confusion_matrix(y_test, svm_pred).tolist(),
         'classification_report': classification_report(y_test, svm_pred, output_dict=True)
     }
-    
+
     # Neural Network
     print("Training Neural Network...")
-    nn = MLPClassifier(hidden_layer_sizes=(100, 50), max_iter=50, random_state=42)
-    nn.fit(X_train, y_train)
+    nn = MLPClassifier(
+        hidden_layer_sizes=(128, 64),
+        alpha=0.001,
+        batch_size=128,
+        learning_rate_init=0.001,
+        early_stopping=True,
+        validation_fraction=0.15,
+        max_iter=200,
+        random_state=42
+    )
+    nn.fit(X_resampled, y_resampled)
     nn_pred = nn.predict(X_test)
+    nn_train_pred = nn.predict(X_train_original)
     models['neural_network'] = nn
-    
+
     results['neural_network'] = {
         'accuracy': float(accuracy_score(y_test, nn_pred)),
+        'train_accuracy': float(accuracy_score(y_train_original, nn_train_pred)),
         'confusion_matrix': confusion_matrix(y_test, nn_pred).tolist(),
         'classification_report': classification_report(y_test, nn_pred, output_dict=True)
     }
-    
+
+    # Cross-validation diagnostic for Random Forest to monitor overfitting tendencies
+    try:
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        rf_cv_scores = cross_val_score(rf, X_train_original, y_train_original, cv=cv, n_jobs=-1)
+        results['random_forest']['cross_val_accuracy'] = {
+            'mean': float(np.mean(rf_cv_scores)),
+            'std': float(np.std(rf_cv_scores))
+        }
+    except Exception as cv_error:
+        results['random_forest']['cross_val_accuracy'] = {
+            'error': str(cv_error)
+        }
+
     return results
 
 @app.route('/')
@@ -170,15 +232,35 @@ def train():
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.3, random_state=42
+            X, y, test_size=0.3, random_state=42, stratify=y
         )
-        
+
+        X_train_resampled, y_train_resampled = X_train, y_train
+
+        if SMOTE is not None:
+            try:
+                smote = SMOTE(random_state=42)
+                X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+            except Exception as smote_error:
+                print(f"SMOTE failed: {smote_error}. Proceeding without resampling.")
+
         # Train models
-        results = train_models(X_train, X_test, y_train, y_test)
+        results = train_models(
+            X_train_resampled,
+            X_test,
+            y_train_resampled,
+            y_test,
+            X_train,
+            y_train
+        )
         
         # Save models
         with open('models/random_forest.pkl', 'wb') as f:
             pickle.dump(models['random_forest'], f)
+        with open('models/svm.pkl', 'wb') as f:
+            pickle.dump(models['svm'], f)
+        with open('models/neural_network.pkl', 'wb') as f:
+            pickle.dump(models['neural_network'], f)
         with open('models/scaler.pkl', 'wb') as f:
             pickle.dump(scaler, f)
         with open('models/label_encoders.pkl', 'wb') as f:
@@ -187,11 +269,14 @@ def train():
             pickle.dump(feature_columns, f)
         with open('models/attack_types.pkl', 'wb') as f:
             pickle.dump(attack_types, f)
-        
+        with open('models/class_distribution.json', 'w') as f:
+            json.dump({str(k): int(v) for k, v in class_distribution.items()}, f)
+
         return jsonify({
             'success': True,
             'results': results,
-            'message': 'Models trained successfully'
+            'class_distribution': {str(k): int(v) for k, v in class_distribution.items()},
+            'message': 'Models trained successfully with class balancing'
         })
     
     except Exception as e:
@@ -237,15 +322,24 @@ def predict():
         # Predict
         model = models.get(model_type, models['random_forest'])
         prediction = model.predict(X_scaled)[0]
-        prediction_proba = model.predict_proba(X_scaled)[0] if hasattr(model, 'predict_proba') else None
-        
+        confidence = None
+        if hasattr(model, 'predict_proba'):
+            prediction_proba = model.predict_proba(X_scaled)[0]
+            confidence = float(np.max(prediction_proba))
+        elif hasattr(model, 'decision_function'):
+            decision = model.decision_function(X_scaled)
+            if decision.ndim == 1:
+                confidence = float(1 / (1 + np.exp(-abs(decision[0]))))
+            else:
+                confidence = float(np.max(decision))
+
         # Decode prediction
         attack_type = label_encoders['target'].inverse_transform([prediction])[0]
-        
+
         result = {
             'prediction': attack_type,
             'is_attack': attack_type.lower() != 'normal',
-            'confidence': float(max(prediction_proba)) if prediction_proba is not None else None
+            'confidence': confidence
         }
         
         return jsonify(result)
@@ -255,11 +349,19 @@ def predict():
 
 def load_models():
     """Load saved models"""
-    global models, scaler, label_encoders, feature_columns, attack_types
-    
+    global models, scaler, label_encoders, feature_columns, attack_types, class_distribution
+
     try:
         with open('models/random_forest.pkl', 'rb') as f:
             models['random_forest'] = pickle.load(f)
+        svm_path = 'models/svm.pkl'
+        if os.path.exists(svm_path):
+            with open(svm_path, 'rb') as f:
+                models['svm'] = pickle.load(f)
+        nn_path = 'models/neural_network.pkl'
+        if os.path.exists(nn_path):
+            with open(nn_path, 'rb') as f:
+                models['neural_network'] = pickle.load(f)
         with open('models/scaler.pkl', 'rb') as f:
             scaler = pickle.load(f)
         with open('models/label_encoders.pkl', 'rb') as f:
@@ -268,6 +370,10 @@ def load_models():
             feature_columns = pickle.load(f)
         with open('models/attack_types.pkl', 'rb') as f:
             attack_types = pickle.load(f)
+        distribution_path = 'models/class_distribution.json'
+        if os.path.exists(distribution_path):
+            with open(distribution_path, 'r') as f:
+                class_distribution = json.load(f)
     except FileNotFoundError:
         pass
 
