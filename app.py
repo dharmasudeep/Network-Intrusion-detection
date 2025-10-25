@@ -119,10 +119,12 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
     """Train multiple ML models with regularisation and provide diagnostics"""
     results = {}
 
+    rng = np.random.default_rng(42)
+
     # Random Forest
     print("Training Random Forest...")
     rf = RandomForestClassifier(
-        n_estimators=300,
+        n_estimators=200,
         max_depth=18,
         min_samples_leaf=4,
         class_weight='balanced_subsample',
@@ -145,8 +147,8 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
 
     # SVM (on a sample for speed)
     print("Training SVM...")
-    sample_size = min(7000, len(X_resampled))
-    indices = np.random.choice(len(X_resampled), sample_size, replace=False)
+    sample_size = min(3000, len(X_resampled))
+    indices = rng.choice(len(X_resampled), sample_size, replace=False)
     svm = SVC(kernel='rbf', class_weight='balanced', probability=True, random_state=42)
     svm.fit(X_resampled[indices], y_resampled[indices])
     svm_pred = svm.predict(X_test)
@@ -159,6 +161,8 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
         'confusion_matrix': confusion_matrix(y_test, svm_pred).tolist(),
         'classification_report': _make_json_serializable(
             classification_report(y_test, svm_pred, output_dict=True)
+        ),
+        'training_samples': int(sample_size)
         )
     }
 
@@ -171,7 +175,7 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
         learning_rate_init=0.001,
         early_stopping=True,
         validation_fraction=0.15,
-        max_iter=200,
+        max_iter=120,
         random_state=42
     )
     nn.fit(X_resampled, y_resampled)
@@ -190,12 +194,41 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
 
     # Cross-validation diagnostic for Random Forest to monitor overfitting tendencies
     try:
-        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        rf_cv_scores = cross_val_score(rf, X_train_original, y_train_original, cv=cv, n_jobs=-1)
+        # Limit the amount of data and folds used for cross-validation to keep
+        # the training request responsive on modest hardware or managed hosting
+        # environments with strict request timeouts.
+        cv_sample_limit = 3000
+        if len(X_train_original) > cv_sample_limit:
+            subset_indices = rng.choice(len(X_train_original), cv_sample_limit, replace=False)
+            X_cv = X_train_original[subset_indices]
+            y_cv = y_train_original[subset_indices]
+            cv_folds = 3
+        else:
+            X_cv = X_train_original
+            y_cv = y_train_original
+            cv_folds = 5
+
+        # Guard against requesting more folds than available class members.
+        if y_cv.size == 0:
+            raise ValueError('No samples available for cross-validation')
+        _, class_counts = np.unique(y_cv, return_counts=True)
+        min_class_count = int(class_counts.min())
+        if min_class_count < 2:
+            raise ValueError('Not enough samples per class for cross-validation')
+        if min_class_count < cv_folds:
+            cv_folds = min_class_count
+
+        cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
+        rf_cv_scores = cross_val_score(rf, X_cv, y_cv, cv=cv, n_jobs=-1)
         results['random_forest']['cross_val_accuracy'] = {
             'mean': float(np.mean(rf_cv_scores)),
             'std': float(np.std(rf_cv_scores))
         }
+        if len(X_train_original) > cv_sample_limit:
+            results['random_forest']['cross_val_accuracy']['sample_size'] = int(cv_sample_limit)
+            results['random_forest']['cross_val_accuracy']['folds'] = int(cv_folds)
+        else:
+            results['random_forest']['cross_val_accuracy']['folds'] = int(cv_folds)
     except Exception as cv_error:
         results['random_forest']['cross_val_accuracy'] = {
             'error': str(cv_error)
