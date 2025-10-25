@@ -116,15 +116,16 @@ duration,protocol_type,service,flag,src_bytes,dst_bytes,count,srv_count,label
 ## Features
 
 ### Machine Learning Models
-- **Random Forest**: Ensemble learning with 100 decision trees
-- **SVM**: Support Vector Machine with RBF kernel
-- **Neural Network**: Multi-layer perceptron with 100-50 hidden layers
+- **Random Forest**: Ensemble learning with 300 balanced trees, depth regularisation, and cross-validation diagnostics
+- **SVM**: Support Vector Machine with RBF kernel, probability calibration, and class weighting for imbalanced data
+- **Neural Network**: Multi-layer perceptron (128-64 hidden layers) with early stopping, dropout-like regularisation, and weight decay
 
 ### Preprocessing
-- Automatic categorical encoding
+- Removes duplicate records and trims unused columns
+- Automatic categorical encoding with missing value imputation
 - Feature scaling with StandardScaler
 - Label encoding for target classes
-- Handles missing values
+- Stratified training/test split with optional SMOTE class balancing
 
 ### Web Interface
 - Modern, responsive design
@@ -160,10 +161,14 @@ Response:
   "results": {
     "random_forest": {
       "accuracy": 0.95,
+      "train_accuracy": 0.93,
+      "cross_val_accuracy": {"mean": 0.94, "std": 0.01},
       "confusion_matrix": [[...], [...]]
     },
     ...
-  }
+  },
+  "class_distribution": {"normal": 20000, "attack": 2500},
+  "message": "Models trained successfully with class balancing"
 }
 ```
 
@@ -205,7 +210,7 @@ Response:
 ## Troubleshooting
 
 ### Issue: Models taking too long to train
-**Solution**: The dataset might be very large. SVM is trained on a sample of 5000 records to speed up the process.
+**Solution**: The dataset might be very large. SVM is trained on a stratified sample (up to 7000 records) with probability calibration to balance speed and accuracy.
 
 ### Issue: File upload fails
 **Solution**: 

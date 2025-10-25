@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Attack Detection Dashboard</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #0b1726;
+            --bg-alt: #11263d;
+            --card: #152c46;
+            --accent: #00d1ff;
+            --accent-soft: rgba(0, 209, 255, 0.12);
+            --text: #f0f6ff;
+            --text-muted: #c0d5f2;
+            --danger: #ff4d6d;
+            --success: #34d399;
+            --warning: #fbbf24;
+            font-family: "Inter", "Segoe UI", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: linear-gradient(160deg, rgba(11, 23, 38, 0.95), rgba(8, 16, 28, 0.95)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80');
+            background-attachment: fixed;
+            background-size: cover;
+            color: var(--text);
+        }
+
+        header {
+            padding: 3rem 1.5rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.08em;
+        }
+
+        header p {
+            margin: 0 auto;
+            max-width: 720px;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        main {
+            padding: 0 1.5rem 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 1.75rem;
+        }
+
+        section {
+            background: rgba(17, 38, 61, 0.88);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 209, 255, 0.15);
+        }
+
+        h2 {
+            margin-top: 0;
+            letter-spacing: 0.05em;
+            font-size: 1.35rem;
+        }
+
+        .upload-card {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .dropzone {
+            border: 2px dashed rgba(0, 209, 255, 0.35);
+            border-radius: 14px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            background: rgba(0, 209, 255, 0.05);
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 209, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .dropzone p {
+            margin: 0.5rem 0 0;
+            color: var(--text-muted);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 0.85rem 1.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: var(--bg);
+            background: var(--accent);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(0, 209, 255, 0.25);
+            filter: brightness(1.05);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 209, 255, 0.12);
+            border-radius: 999px;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .status-pill span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warning);
+        }
+
+        .status-pill[data-state="ready"] span {
+            background: var(--success);
+        }
+
+        .status-pill[data-state="error"] span {
+            background: var(--danger);
+        }
+
+        .grid-two {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(240, 246, 255, 0.08);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric span {
+            font-weight: 600;
+        }
+
+        .metric small {
+            color: var(--text-muted);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        table th,
+        table td {
+            border: 1px solid rgba(240, 246, 255, 0.12);
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+        }
+
+        table th {
+            background: rgba(0, 209, 255, 0.08);
+            font-weight: 600;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.85rem;
+            letter-spacing: 0.04em;
+        }
+
+        .pill.success {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+        }
+
+        .pill.danger {
+            background: rgba(255, 77, 109, 0.18);
+            color: var(--danger);
+        }
+
+        textarea, input[type="text"], select {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(240, 246, 255, 0.15);
+            background: rgba(10, 22, 36, 0.6);
+            color: var(--text);
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+            transition: border 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        textarea:focus,
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 209, 255, 0.2);
+        }
+
+        textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        .log {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.9rem;
+            background: rgba(3, 8, 16, 0.9);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(240, 246, 255, 0.12);
+            max-height: 220px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .log p {
+            margin: 0 0 0.65rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 1rem 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 680px) {
+            section {
+                padding: 1.25rem;
+            }
+
+            .button-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Network Attack Detection Control Center</h1>
+    <p>Upload the CDD intrusion dataset, train benchmark machine learning models, and analyse predictions in a single place.
+        Track class balance, compare algorithms, and experiment with manual traffic simulations.</p>
+</header>
+
+<main>
+    <section class="upload-card">
+        <div>
+            <h2>1. Upload Dataset</h2>
+            <div class="status-pill" id="dataset-status" data-state="idle"><span></span><strong id="dataset-state-text">Awaiting CSV</strong></div>
+        </div>
+        <label class="dropzone" id="dropzone">
+            <strong>Drag &amp; Drop your CSV</strong>
+            <p>or click to browse &mdash; maximum 16&nbsp;MB. Expected columns include traffic metadata and a label column.</p>
+            <input type="file" id="file-input" accept=".csv" />
+        </label>
+        <div id="upload-info" class="log" hidden>
+            <p><strong>Filename:</strong> <span id="file-name"></span></p>
+            <p><strong>Rows:</strong> <span id="file-rows"></span> &nbsp;|&nbsp; <strong>Columns:</strong> <span id="file-cols"></span></p>
+            <p id="class-warning" hidden><strong>Reminder:</strong> Inspect class balance after training to confirm SMOTE results.</p>
+        </div>
+        <div class="button-row">
+            <button id="check-status">Check Server Status</button>
+            <button id="train-btn" disabled>Train Models</button>
+        </div>
+        <div id="status-log" class="log" hidden></div>
+    </section>
+
+    <section>
+        <h2>2. Training Overview</h2>
+        <div id="training-overview" hidden>
+            <div class="card-title">Class Distribution</div>
+            <div id="class-distribution" class="grid-two"></div>
+            <div class="card-title" style="margin-top:1.5rem;">Model Benchmark Summary</div>
+            <div id="model-summary" class="grid-two"></div>
+        </div>
+        <p id="training-placeholder">Upload a dataset and trigger training to see benchmarking metrics.</p>
+    </section>
+
+    <section>
+        <h2>3. Detailed Model Diagnostics</h2>
+        <div id="model-details"></div>
+        <p id="details-placeholder">After training, expanded accuracy reports, confusion matrices, and cross-validation diagnostics will appear here.</p>
+    </section>
+
+    <section>
+        <h2>4. Manual Prediction Sandbox</h2>
+        <p>Provide feature values as JSON. Keys must match the training feature names exactly. Unknown categorical values default to 0.</p>
+        <label for="model-select" class="card-title" style="display:block;margin-bottom:0.5rem;">Model</label>
+        <select id="model-select" disabled>
+            <option value="random_forest">Random Forest</option>
+            <option value="svm">Support Vector Machine</option>
+            <option value="neural_network">Neural Network</option>
+        </select>
+        <label for="feature-json" class="card-title" style="display:block;margin:1rem 0 0.5rem;">Feature payload</label>
+        <textarea id="feature-json" placeholder='{"duration": 0, "protocol_type": "tcp", ...}'></textarea>
+        <div class="button-row" style="margin-top:1rem;">
+            <button id="predict-btn" disabled>Run Prediction</button>
+            <button id="reset-form" type="button">Reset</button>
+        </div>
+        <div id="prediction-result" class="log" hidden></div>
+    </section>
+</main>
+
+<footer>
+    <p>Need help? Review the README for setup, dataset preparation, and troubleshooting tips.</p>
+</footer>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const uploadInfo = document.getElementById('upload-info');
+    const datasetStatus = document.getElementById('dataset-status');
+    const datasetStateText = document.getElementById('dataset-state-text');
+    const fileName = document.getElementById('file-name');
+    const fileRows = document.getElementById('file-rows');
+    const fileCols = document.getElementById('file-cols');
+    const trainBtn = document.getElementById('train-btn');
+    const statusLog = document.getElementById('status-log');
+    const checkStatusBtn = document.getElementById('check-status');
+    const trainingPlaceholder = document.getElementById('training-placeholder');
+    const trainingOverview = document.getElementById('training-overview');
+    const classDistributionContainer = document.getElementById('class-distribution');
+    const modelSummaryContainer = document.getElementById('model-summary');
+    const modelDetails = document.getElementById('model-details');
+    const detailsPlaceholder = document.getElementById('details-placeholder');
+    const predictBtn = document.getElementById('predict-btn');
+    const predictionResult = document.getElementById('prediction-result');
+    const featureJson = document.getElementById('feature-json');
+    const modelSelect = document.getElementById('model-select');
+    const resetFormBtn = document.getElementById('reset-form');
+    const classWarning = document.getElementById('class-warning');
+
+    let availableModels = ['random_forest', 'svm', 'neural_network'];
+
+    const setStatus = (text, state = 'idle') => {
+        datasetStateText.textContent = text;
+        datasetStatus.dataset.state = state;
+    };
+
+    const appendLog = (message, type = 'info') => {
+        const now = new Date().toLocaleTimeString();
+        statusLog.hidden = false;
+        statusLog.insertAdjacentHTML('afterbegin', `<p>[${now}] <span class="pill ${type === 'error' ? 'danger' : 'success'}">${type.toUpperCase()}</span> ${message}</p>`);
+    };
+
+    const renderClassDistribution = (distribution) => {
+        classDistributionContainer.innerHTML = '';
+        const entries = Object.entries(distribution);
+        if (!entries.length) {
+            classDistributionContainer.innerHTML = '<p>No class distribution data available.</p>';
+            return;
+        }
+        entries.forEach(([label, count]) => {
+            const card = document.createElement('div');
+            card.style.background = 'var(--card)';
+            card.style.borderRadius = '14px';
+            card.style.padding = '1rem 1.2rem';
+            card.style.border = '1px solid rgba(0, 209, 255, 0.12)';
+            card.innerHTML = `
+                <div class="card-title" style="margin-bottom:0.4rem;">${label}</div>
+                <div style="font-size:1.6rem;font-weight:700;">${count.toLocaleString()}</div>
+            `;
+            classDistributionContainer.appendChild(card);
+        });
+        classWarning.hidden = false;
+    };
+
+    const renderModelSummary = (results) => {
+        modelSummaryContainer.innerHTML = '';
+        Object.entries(results).forEach(([model, metrics]) => {
+            const card = document.createElement('div');
+            card.style.background = 'var(--card)';
+            card.style.borderRadius = '14px';
+            card.style.padding = '1rem 1.2rem';
+            card.style.border = '1px solid rgba(0, 209, 255, 0.12)';
+            const accuracy = metrics.accuracy !== undefined ? (metrics.accuracy * 100).toFixed(2) + '%' : 'N/A';
+            const trainAccuracy = metrics.train_accuracy !== undefined ? (metrics.train_accuracy * 100).toFixed(2) + '%' : 'N/A';
+            let cvText = 'n/a';
+            if (metrics.cross_val_accuracy && metrics.cross_val_accuracy.mean !== undefined) {
+                const mean = (metrics.cross_val_accuracy.mean * 100).toFixed(2);
+                const std = (metrics.cross_val_accuracy.std * 100).toFixed(2);
+                cvText = `${mean}% ± ${std}`;
+            } else if (metrics.cross_val_accuracy && metrics.cross_val_accuracy.error) {
+                cvText = metrics.cross_val_accuracy.error;
+            }
+            card.innerHTML = `
+                <div class="card-title" style="margin-bottom:0.6rem;">${model.replace(/_/g, ' ')}</div>
+                <div class="metric"><small>Accuracy</small><span>${accuracy}</span></div>
+                <div class="metric"><small>Training Accuracy</small><span>${trainAccuracy}</span></div>
+                <div class="metric"><small>Cross-val</small><span>${cvText}</span></div>
+            `;
+            modelSummaryContainer.appendChild(card);
+        });
+    };
+
+    const renderClassificationReport = (report) => {
+        const headers = ['Class', 'Precision', 'Recall', 'F1-score', 'Support'];
+        const rows = Object.entries(report)
+            .filter(([key]) => !['accuracy', 'macro avg', 'weighted avg'].includes(key))
+            .map(([label, metrics]) => `
+                <tr>
+                    <td>${label}</td>
+                    <td>${(metrics.precision * 100).toFixed(2)}%</td>
+                    <td>${(metrics.recall * 100).toFixed(2)}%</td>
+                    <td>${(metrics['f1-score'] * 100).toFixed(2)}%</td>
+                    <td>${metrics.support}</td>
+                </tr>
+            `).join('');
+        const summaryRows = ['macro avg', 'weighted avg'].map((label) => {
+            const metrics = report[label];
+            if (!metrics) return '';
+            return `
+                <tr>
+                    <td>${label}</td>
+                    <td>${(metrics.precision * 100).toFixed(2)}%</td>
+                    <td>${(metrics.recall * 100).toFixed(2)}%</td>
+                    <td>${(metrics['f1-score'] * 100).toFixed(2)}%</td>
+                    <td>${metrics.support}</td>
+                </tr>
+            `;
+        }).join('');
+        return `
+            <table>
+                <thead>
+                    <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>${rows}${summaryRows}</tbody>
+            </table>
+        `;
+    };
+
+    const renderConfusionMatrix = (matrix) => {
+        if (!Array.isArray(matrix) || !matrix.length) {
+            return '<p>No confusion matrix provided.</p>';
+        }
+        const headers = matrix[0].map((_, idx) => `<th>Pred ${idx}</th>`).join('');
+        const rows = matrix.map((row, idx) => `
+            <tr>
+                <th>Actual ${idx}</th>
+                ${row.map(cell => `<td>${cell}</td>`).join('')}
+            </tr>
+        `).join('');
+        return `
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        ${headers}
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    };
+
+    const renderModelDetails = (results) => {
+        modelDetails.innerHTML = '';
+        Object.entries(results).forEach(([model, metrics]) => {
+            const wrapper = document.createElement('div');
+            wrapper.style.marginBottom = '2.5rem';
+            wrapper.innerHTML = `
+                <h3 style="text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.8rem;">${model.replace(/_/g, ' ')}</h3>
+                <div style="display:grid;gap:1.25rem;">
+                    <div>
+                        <div class="card-title">Classification Report</div>
+                        ${metrics.classification_report ? renderClassificationReport(metrics.classification_report) : '<p>Report unavailable.</p>'}
+                    </div>
+                    <div>
+                        <div class="card-title">Confusion Matrix</div>
+                        ${renderConfusionMatrix(metrics.confusion_matrix)}
+                    </div>
+                </div>
+            `;
+            modelDetails.appendChild(wrapper);
+        });
+    };
+
+    const resetPrediction = () => {
+        featureJson.value = '';
+        predictionResult.hidden = true;
+        predictionResult.innerHTML = '';
+    };
+
+    const parseJsonSafe = (value) => {
+        try {
+            return JSON.parse(value);
+        } catch (error) {
+            throw new Error('Invalid JSON payload. Ensure keys are quoted and values use valid JSON types.');
+        }
+    };
+
+    const updateModelOptions = (models) => {
+        availableModels = models && models.length ? models : availableModels;
+        modelSelect.innerHTML = availableModels.map((name) => {
+            const label = name.replace(/_/g, ' ');
+            return `<option value="${name}">${label.charAt(0).toUpperCase() + label.slice(1)}</option>`;
+        }).join('');
+        modelSelect.disabled = false;
+    };
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
+    dropzone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (event.dataTransfer.files.length) {
+            fileInput.files = event.dataTransfer.files;
+            handleFileUpload(event.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (event) => {
+        if (event.target.files.length) {
+            handleFileUpload(event.target.files[0]);
+        }
+    });
+
+    const handleFileUpload = async (file) => {
+        if (!file.name.endsWith('.csv')) {
+            appendLog('Only CSV files are supported.', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setStatus('Uploading…', 'warning');
+        trainBtn.disabled = true;
+        statusLog.hidden = true;
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || 'Upload failed');
+            }
+
+            uploadInfo.hidden = false;
+            fileName.textContent = payload.filename;
+            fileRows.textContent = payload.rows.toLocaleString();
+            fileCols.textContent = payload.columns;
+
+            setStatus('Dataset loaded', 'ready');
+            trainBtn.disabled = false;
+            appendLog(`Upload succeeded: ${payload.filename} (${payload.rows} rows)`);
+        } catch (error) {
+            setStatus('Upload failed', 'error');
+            appendLog(error.message, 'error');
+        }
+    };
+
+    checkStatusBtn.addEventListener('click', async () => {
+        try {
+            const response = await fetch('/status');
+            const payload = await response.json();
+            const modelsInfo = payload.available_models && payload.available_models.length ? payload.available_models.join(', ') : 'none';
+            appendLog(`Server ready. Dataset loaded: ${payload.dataset_loaded}. Models: ${modelsInfo}.`);
+            if (payload.available_models) {
+                updateModelOptions(payload.available_models);
+            }
+        } catch (error) {
+            appendLog(`Status check failed: ${error.message}`, 'error');
+        }
+    });
+
+    trainBtn.addEventListener('click', async () => {
+        trainBtn.disabled = true;
+        setStatus('Training in progress…', 'warning');
+        appendLog('Training started. This may take a few minutes.');
+        predictionResult.hidden = true;
+        detailsPlaceholder.hidden = true;
+        trainingPlaceholder.hidden = true;
+
+        try {
+            const response = await fetch('/train', { method: 'POST' });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || 'Training failed');
+            }
+
+            setStatus('Models trained', 'ready');
+            appendLog('Training completed successfully.');
+
+            const { results, class_distribution } = payload;
+            trainingOverview.hidden = false;
+            renderClassDistribution(class_distribution || {});
+            renderModelSummary(results || {});
+            renderModelDetails(results || {});
+            detailsPlaceholder.hidden = true;
+            trainingPlaceholder.hidden = true;
+
+            if (payload.results) {
+                const trainedModels = Object.keys(payload.results);
+                updateModelOptions(trainedModels);
+                predictBtn.disabled = false;
+            }
+            trainBtn.disabled = false;
+        } catch (error) {
+            appendLog(error.message, 'error');
+            setStatus('Training failed', 'error');
+            trainBtn.disabled = false;
+            trainingPlaceholder.hidden = false;
+            detailsPlaceholder.hidden = false;
+            predictBtn.disabled = true;
+        }
+    });
+
+    predictBtn.addEventListener('click', async () => {
+        try {
+            const features = parseJsonSafe(featureJson.value.trim());
+            const selectedModel = modelSelect.value;
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: selectedModel, features })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || 'Prediction failed');
+            }
+
+            predictionResult.hidden = false;
+            const badgeClass = payload.is_attack ? 'danger' : 'success';
+            const badgeLabel = payload.is_attack ? 'Attack Detected' : 'Normal Traffic';
+            const confidenceText = payload.confidence !== null && payload.confidence !== undefined
+                ? `${(payload.confidence * 100).toFixed(2)}%`
+                : 'N/A';
+            predictionResult.innerHTML = `
+                <p><strong>Prediction:</strong> ${payload.prediction}</p>
+                <p><span class="pill ${badgeClass}">${badgeLabel}</span></p>
+                <p><strong>Confidence:</strong> ${confidenceText}</p>
+            `;
+        } catch (error) {
+            predictionResult.hidden = false;
+            predictionResult.innerHTML = `<p class="pill danger">${error.message}</p>`;
+        }
+    });
+
+    resetFormBtn.addEventListener('click', resetPrediction);
+</script>
+</body>
+</html>
