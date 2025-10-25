@@ -3,610 +3,639 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Attack Detection System</title>
+    <title>Network Attack Detection</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
+        :root {
+            color-scheme: light dark;
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg: #0f172a;
+            --bg-card: rgba(15, 23, 42, 0.92);
+            --border: rgba(148, 163, 184, 0.25);
+            --accent: #38bdf8;
+            --accent-dark: #0ea5e9;
+            --text: #e2e8f0;
+            --text-soft: #cbd5f5;
+            --success: #34d399;
+            --danger: #f87171;
+            --warning: #facc15;
+        }
+
+        *, *::before, *::after {
             box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
             min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.15), transparent 65%),
+                        radial-gradient(circle at 90% 10%, rgba(129, 140, 248, 0.12), transparent 60%),
+                        linear-gradient(160deg, #020617 0%, #0b1120 50%, #111827 100%);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 18px 64px;
         }
 
         header {
             text-align: center;
-            color: white;
-            margin-bottom: 40px;
+            max-width: 760px;
+            margin-bottom: 32px;
         }
 
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        header h1 {
+            font-size: clamp(2rem, 5vw, 3.25rem);
+            letter-spacing: 0.05em;
+            margin: 0 0 12px;
         }
 
-        .subtitle {
-            font-size: 1.2em;
-            opacity: 0.9;
+        header p {
+            margin: 0;
+            line-height: 1.6;
+            color: var(--text-soft);
         }
 
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        main {
+            width: min(1100px, 100%);
+            display: grid;
+            gap: 22px;
         }
 
-        .card h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
+        section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 26px 26px 30px;
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.45);
+        }
+
+        section h2 {
+            margin: 0 0 14px;
+            font-size: 1.35rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .card-description {
+            margin: 0 0 22px;
+            color: var(--text-soft);
+            line-height: 1.55;
+            font-size: 0.98rem;
         }
 
         .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 10px;
-            padding: 40px;
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 32px;
             text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .upload-area:hover {
-            background: #f8f9ff;
-            border-color: #764ba2;
+            transition: border-color 0.25s ease, background 0.25s ease;
+            background: rgba(30, 41, 59, 0.4);
         }
 
         .upload-area.dragover {
-            background: #e8ebff;
-            border-color: #764ba2;
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.12);
         }
 
-        input[type="file"] {
-            display: none;
+        .upload-area strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
         }
 
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .upload-area p {
+            margin: 0;
+            color: var(--text-soft);
+            font-size: 0.95rem;
+        }
+
+        button, .ghost-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 16px;
+            border-radius: 999px;
+            padding: 0.8rem 1.8rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin: 5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            font-size: 0.98rem;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        button {
+            background: var(--accent);
+            color: #020617;
+            box-shadow: 0 12px 22px rgba(14, 165, 233, 0.2);
         }
 
-        .btn:disabled {
-            opacity: 0.5;
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: var(--accent-dark);
+            box-shadow: 0 16px 28px rgba(14, 165, 233, 0.28);
+        }
+
+        button:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
+            box-shadow: none;
         }
 
-        .btn-success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        .ghost-button {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        .ghost-button:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
-        .status {
+        .status-bar {
             display: flex;
-            justify-content: space-around;
             flex-wrap: wrap;
-            gap: 20px;
-            margin: 20px 0;
+            gap: 12px;
+            margin-top: 18px;
         }
 
-        .status-item {
-            flex: 1;
-            min-width: 200px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            text-align: center;
+        .status-chip {
+            border-radius: 999px;
+            padding: 0.4rem 1.1rem;
+            background: rgba(148, 163, 184, 0.12);
+            font-size: 0.9rem;
         }
 
-        .status-item h3 {
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
+        .status-chip.success { background: rgba(52, 211, 153, 0.18); color: var(--success); }
+        .status-chip.warning { background: rgba(250, 204, 21, 0.18); color: var(--warning); }
+        .status-chip.danger { background: rgba(248, 113, 113, 0.18); color: var(--danger); }
 
-        .results {
+        .results-grid {
+            display: grid;
+            gap: 16px;
             margin-top: 20px;
         }
 
-        .model-results {
-            background: #f8f9ff;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 5px;
+        .result-card {
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(30, 41, 59, 0.55);
         }
 
-        .model-results h3 {
-            color: #667eea;
-            margin-bottom: 10px;
+        .result-card h3 {
+            margin: 0 0 10px;
+            letter-spacing: 0.03em;
         }
 
-        .accuracy {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #11998e;
-        }
-
-        .prediction-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .form-group {
+        .metric-row {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
+            gap: 14px;
+            font-size: 0.95rem;
         }
 
-        .form-group label {
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select {
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .prediction-result {
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-            font-size: 1.2em;
-        }
-
-        .prediction-result.normal {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
-        }
-
-        .prediction-result.attack {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-            color: white;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .confusion-matrix {
-            overflow-x: auto;
-            margin: 20px 0;
+        .metric {
+            background: rgba(148, 163, 184, 0.14);
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin-top: 14px;
+            font-size: 0.92rem;
         }
 
         th, td {
-            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            padding: 6px 10px;
             text-align: center;
-            border: 1px solid #ddd;
         }
 
         th {
-            background: #667eea;
-            color: white;
+            background: rgba(15, 23, 42, 0.75);
+            font-weight: 600;
         }
 
-        tr:nth-child(even) {
-            background: #f8f9ff;
+        .prediction-form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .prediction-form label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.93rem;
+            color: var(--text-soft);
+        }
+
+        .prediction-form input,
+        .prediction-form select,
+        .prediction-form textarea {
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .prediction-result {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .prediction-result.safe {
+            background: rgba(52, 211, 153, 0.18);
+            color: var(--success);
+        }
+
+        .prediction-result.attack {
+            background: rgba(248, 113, 113, 0.18);
+            color: var(--danger);
+        }
+
+        code {
+            font-family: "Fira Code", "SFMono-Regular", Menlo, monospace;
+            background: rgba(148, 163, 184, 0.16);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        .small-print {
+            font-size: 0.85rem;
+            color: var(--text-soft);
+            margin-top: 18px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 22px 14px 48px; }
+            section { padding: 22px 20px 26px; }
+            .metric-row { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🛡️ Network Attack Detection System</h1>
-            <p class="subtitle">AI-Powered Intrusion Detection Using Machine Learning</p>
-        </header>
+    <header>
+        <h1>Network Attack Detection Lab</h1>
+        <p>
+            Upload the CDD intrusion dataset, train the Random Forest, SVM, and Neural Network models with the
+            built-in preprocessing pipeline, and submit manual feature vectors to simulate real-time threat scoring.
+        </p>
+    </header>
 
-        <!-- Status Dashboard -->
-        <div class="card">
-            <h2>📊 System Status</h2>
-            <div class="status">
-                <div class="status-item">
-                    <h3 id="datasetStatus">❌</h3>
-                    <p>Dataset Loaded</p>
-                </div>
-                <div class="status-item">
-                    <h3 id="modelsStatus">❌</h3>
-                    <p>Models Trained</p>
-                </div>
-                <div class="status-item">
-                    <h3 id="recordsCount">0</h3>
-                    <p>Total Records</p>
-                </div>
+    <main>
+        <section id="upload-section">
+            <h2>1 · Upload Dataset</h2>
+            <p class="card-description">
+                Supply a CSV file that mirrors the NSL-KDD / CDD feature layout. The server strips duplicates,
+                standardises columns, and records class distribution before training.
+            </p>
+            <div class="upload-area" id="dropzone">
+                <input type="file" id="file-input" accept=".csv" hidden>
+                <strong>Drag a CSV here or click to browse</strong>
+                <p id="upload-hint">No file selected</p>
             </div>
-        </div>
+            <div class="status-bar" id="upload-status"></div>
+        </section>
 
-        <!-- Upload Dataset -->
-        <div class="card">
-            <h2>📁 Step 1: Upload Dataset</h2>
-            <div class="upload-area" id="uploadArea">
-                <h3>📤 Drag & Drop CSV File Here</h3>
-                <p>or</p>
-                <button class="btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
-                <input type="file" id="fileInput" accept=".csv">
-            </div>
-            <div id="uploadMessage"></div>
-        </div>
+        <section id="train-section">
+            <h2>2 · Train Models</h2>
+            <p class="card-description">
+                Once a dataset is uploaded, launch training to fit the Random Forest, SVM, and MLP classifiers with
+                SMOTE balancing, scaling, and encoded categorical features. Results include accuracy, confusion
+                matrices, and class frequency diagnostics.
+            </p>
+            <button id="train-btn" disabled>Train Models</button>
+            <div class="status-bar" id="train-status"></div>
+            <div class="results-grid" id="results-grid"></div>
+        </section>
 
-        <!-- Train Models -->
-        <div class="card">
-            <h2>🤖 Step 2: Train Machine Learning Models</h2>
-            <p>Train Random Forest, SVM, and Neural Network models on your dataset.</p>
-            <button class="btn btn-success" id="trainBtn" onclick="trainModels()" disabled>
-                🚀 Train Models
-            </button>
-            <div class="loading" id="trainLoading">
-                <div class="spinner"></div>
-                <p>Training models... This may take a few minutes.</p>
-            </div>
-            <div id="trainingResults" class="results"></div>
-        </div>
-
-        <!-- Predict -->
-        <div class="card">
-            <h2>🔍 Step 3: Detect Network Attacks</h2>
-            <p>Enter network traffic parameters to detect potential attacks.</p>
-            
-            <div class="prediction-form" id="predictionForm">
-                <div class="form-group">
-                    <label>Duration</label>
-                    <input type="number" name="duration" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Protocol Type</label>
-                    <select name="protocol_type">
-                        <option value="tcp">TCP</option>
-                        <option value="udp">UDP</option>
-                        <option value="icmp">ICMP</option>
+        <section id="predict-section">
+            <h2>3 · Manual Prediction</h2>
+            <p class="card-description">
+                After training, populate each feature and choose an estimator to classify a single network event. Use
+                the feature list generated from your dataset; leave categorical values as their original labels.
+            </p>
+            <form class="prediction-form" id="prediction-form">
+                <label>
+                    Model
+                    <select id="model-select" name="model">
+                        <option value="random_forest">Random Forest</option>
+                        <option value="svm">Support Vector Machine</option>
+                        <option value="neural_network">Neural Network</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label>Service</label>
-                    <select name="service">
-                        <option value="http">HTTP</option>
-                        <option value="smtp">SMTP</option>
-                        <option value="ftp">FTP</option>
-                        <option value="ssh">SSH</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Flag</label>
-                    <select name="flag">
-                        <option value="SF">SF</option>
-                        <option value="S0">S0</option>
-                        <option value="REJ">REJ</option>
-                        <option value="RSTR">RSTR</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Src Bytes</label>
-                    <input type="number" name="src_bytes" value="200">
-                </div>
-                <div class="form-group">
-                    <label>Dst Bytes</label>
-                    <input type="number" name="dst_bytes" value="100">
-                </div>
-                <div class="form-group">
-                    <label>Count</label>
-                    <input type="number" name="count" value="10">
-                </div>
-                <div class="form-group">
-                    <label>Srv Count</label>
-                    <input type="number" name="srv_count" value="5">
-                </div>
-            </div>
-
-            <button class="btn" id="predictBtn" onclick="makePrediction()" disabled>
-                🎯 Detect Attack
-            </button>
-
-            <div id="predictionResult"></div>
-        </div>
-    </div>
+                </label>
+                <div id="feature-fields"></div>
+                <button type="submit" id="predict-btn" disabled>Detect Attack</button>
+            </form>
+            <div id="prediction-output"></div>
+            <p class="small-print" id="feature-hint">
+                Train the models to populate the feature inputs automatically. Fields accept either numeric values or
+                raw categorical labels (the backend reuses the dataset encoders).
+            </p>
+        </section>
+    </main>
 
     <script>
-        let datasetLoaded = false;
-        let modelsTrained = false;
+        const uploadStatus = document.getElementById('upload-status');
+        const trainStatus = document.getElementById('train-status');
+        const resultsGrid = document.getElementById('results-grid');
+        const predictionForm = document.getElementById('prediction-form');
+        const predictBtn = document.getElementById('predict-btn');
+        const predictionOutput = document.getElementById('prediction-output');
+        const featureFields = document.getElementById('feature-fields');
+        const modelSelect = document.getElementById('model-select');
+        const trainButton = document.getElementById('train-btn');
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const uploadHint = document.getElementById('upload-hint');
 
-        // Check system status on load
-        checkStatus();
+        const state = {
+            datasetInfo: null,
+            training: null,
+            features: [],
+        };
 
-        // File upload handling
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
+        function setUploadStatus(message, type = 'info') {
+            uploadStatus.innerHTML = '';
+            const chip = document.createElement('span');
+            chip.className = 'status-chip ' + (type === 'success' ? 'success' : type === 'error' ? 'danger' : 'warning');
+            chip.textContent = message;
+            uploadStatus.appendChild(chip);
+        }
 
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
+        function setTrainStatus(message, type = 'info') {
+            trainStatus.innerHTML = '';
+            const chip = document.createElement('span');
+            chip.className = 'status-chip ' + (type === 'success' ? 'success' : type === 'error' ? 'danger' : 'warning');
+            chip.textContent = message;
+            trainStatus.appendChild(chip);
+        }
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
+        function percent(value) {
+            if (typeof value !== 'number' || Number.isNaN(value)) return '—';
+            return `${(value * 100).toFixed(2)}%`;
+        }
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
+        function renderResults(results, distribution) {
+            resultsGrid.innerHTML = '';
+            const summaryTable = document.createElement('table');
+            summaryTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Test Accuracy</th>
+                        <th>Train Accuracy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(results).map(([name, stats]) => `
+                        <tr>
+                            <td>${formatModelName(name)}</td>
+                            <td>${percent(stats.accuracy)}</td>
+                            <td>${percent(stats.train_accuracy)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            resultsGrid.appendChild(summaryTable);
+
+            Object.entries(results).forEach(([name, stats]) => {
+                const card = document.createElement('article');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <h3>${formatModelName(name)}</h3>
+                    <div class="metric-row">
+                        <span class="metric">Accuracy: ${percent(stats.accuracy)}</span>
+                        <span class="metric">Train Accuracy: ${percent(stats.train_accuracy)}</span>
+                        ${(() => {
+                            const cv = stats.cross_val_accuracy || {};
+                            if (typeof cv.mean !== 'number') return '';
+                            const stdText = typeof cv.std === 'number' ? `${(cv.std * 100).toFixed(2)}%` : '—';
+                            return `<span class="metric">CV Mean: ${percent(cv.mean)} ± ${stdText}</span>`;
+                        })()
+                            : ''}
+                    </div>
+                `;
+
+                if (stats.confusion_matrix) {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th colspan="${stats.confusion_matrix.length}">Confusion Matrix</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stats.confusion_matrix.map(row => `
+                                <tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    card.appendChild(table);
+                }
+
+                if (stats.classification_report) {
+                    const report = document.createElement('pre');
+                    const lines = Object.entries(stats.classification_report)
+                        .filter(([label]) => !['accuracy', 'macro avg', 'weighted avg'].includes(label) || typeof stats.classification_report[label] === 'object')
+                        .map(([label, metrics]) => {
+                            if (typeof metrics !== 'object') return null;
+                            const precision = (metrics.precision * 100).toFixed(2);
+                            const recall = (metrics.recall * 100).toFixed(2);
+                            const f1 = (metrics['f1-score'] * 100).toFixed(2);
+                            return `${label.padEnd(12)}  P:${precision}%  R:${recall}%  F1:${f1}%`;
+                        })
+                        .filter(Boolean)
+                        .join('\n');
+                    report.textContent = `Precision / Recall / F1\n${lines}`;
+                    card.appendChild(report);
+                }
+
+                resultsGrid.appendChild(card);
+            });
+
+            if (distribution) {
+                const distCard = document.createElement('article');
+                distCard.className = 'result-card';
+                distCard.innerHTML = '<h3>Class Distribution</h3>';
+                const table = document.createElement('table');
+                table.innerHTML = `
+                    <thead><tr><th>Label</th><th>Samples</th></tr></thead>
+                    <tbody>
+                        ${Object.entries(distribution).map(([label, count]) => `
+                            <tr><td>${label}</td><td>${count}</td></tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                distCard.appendChild(table);
+                resultsGrid.appendChild(distCard);
             }
-        });
+        }
 
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
+        function formatModelName(key) {
+            switch (key) {
+                case 'random_forest': return 'Random Forest';
+                case 'svm': return 'Support Vector Machine';
+                case 'neural_network': return 'Neural Network';
+                default: return key;
             }
-        });
+        }
 
-        function handleFile(file) {
-            if (!file.name.endsWith('.csv')) {
-                showMessage('uploadMessage', 'Please upload a CSV file', 'danger');
+        function buildFeatureInputs(features) {
+            featureFields.innerHTML = '';
+            if (!features || !features.length) {
+                predictBtn.disabled = true;
                 return;
             }
 
+            features.forEach((feature) => {
+                const wrapper = document.createElement('label');
+                wrapper.textContent = feature;
+                const input = document.createElement('input');
+                input.name = feature;
+                input.placeholder = 'Enter value';
+                input.required = true;
+                wrapper.appendChild(input);
+                featureFields.appendChild(wrapper);
+            });
+
+            predictBtn.disabled = false;
+        }
+
+        async function uploadFile(file) {
             const formData = new FormData();
             formData.append('file', file);
 
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    datasetLoaded = true;
-                    document.getElementById('trainBtn').disabled = false;
-                    document.getElementById('recordsCount').textContent = data.rows.toLocaleString();
-                    showMessage('uploadMessage', 
-                        `✅ ${data.message}<br>Rows: ${data.rows}, Columns: ${data.columns}`, 
-                        'success');
-                    checkStatus();
-                } else {
-                    showMessage('uploadMessage', data.error, 'danger');
-                }
-            })
-            .catch(error => {
-                showMessage('uploadMessage', 'Error uploading file: ' + error, 'danger');
-            });
-        }
-
-        function trainModels() {
-            const trainLoading = document.getElementById('trainLoading');
-            const trainBtn = document.getElementById('trainBtn');
-            
-            trainLoading.classList.add('active');
-            trainBtn.disabled = true;
-
-            fetch('/train', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                trainLoading.classList.remove('active');
-                
-                if (data.success) {
-                    modelsTrained = true;
-                    document.getElementById('predictBtn').disabled = false;
-                    displayResults(data.results);
-                    checkStatus();
-                    showMessage('trainingResults', '✅ Models trained successfully!', 'success');
-                } else {
-                    showMessage('trainingResults', data.error, 'danger');
-                    trainBtn.disabled = false;
-                }
-            })
-            .catch(error => {
-                trainLoading.classList.remove('active');
-                trainBtn.disabled = false;
-                showMessage('trainingResults', 'Error training models: ' + error, 'danger');
-            });
-        }
-
-        function displayResults(results) {
-            const resultsDiv = document.getElementById('trainingResults');
-            let html = '<h3>Training Results</h3>';
-
-            for (const [model, result] of Object.entries(results)) {
-                const modelName = model.replace('_', ' ').toUpperCase();
-                html += `
-                    <div class="model-results">
-                        <h3>📈 ${modelName}</h3>
-                        <p class="accuracy">Accuracy: ${(result.accuracy * 100).toFixed(2)}%</p>
-                        <details>
-                            <summary style="cursor: pointer; margin: 10px 0;">View Confusion Matrix</summary>
-                            <div class="confusion-matrix">
-                                ${createConfusionMatrixTable(result.confusion_matrix)}
-                            </div>
-                        </details>
-                    </div>
-                `;
-            }
-
-            resultsDiv.innerHTML = html;
-        }
-
-        function createConfusionMatrixTable(matrix) {
-            let html = '<table><thead><tr><th>Actual \\ Predicted</th>';
-            
-            for (let i = 0; i < matrix[0].length; i++) {
-                html += `<th>Class ${i}</th>`;
-            }
-            html += '</tr></thead><tbody>';
-
-            matrix.forEach((row, i) => {
-                html += `<tr><th>Class ${i}</th>`;
-                row.forEach(val => {
-                    html += `<td>${val}</td>`;
+            setUploadStatus('Uploading dataset…');
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
                 });
-                html += '</tr>';
-            });
-
-            html += '</tbody></table>';
-            return html;
-        }
-
-        function makePrediction() {
-            const form = document.getElementById('predictionForm');
-            const inputs = form.querySelectorAll('input, select');
-            const features = {};
-
-            inputs.forEach(input => {
-                features[input.name] = input.type === 'number' ? 
-                    parseFloat(input.value) : input.value;
-            });
-
-            fetch('/predict', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: 'random_forest',
-                    features: features
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    showMessage('predictionResult', data.error, 'danger');
-                } else {
-                    displayPrediction(data);
-                }
-            })
-            .catch(error => {
-                showMessage('predictionResult', 'Error making prediction: ' + error, 'danger');
-            });
-        }
-
-        function displayPrediction(data) {
-            const resultDiv = document.getElementById('predictionResult');
-            const className = data.is_attack ? 'attack' : 'normal';
-            const icon = data.is_attack ? '⚠️' : '✅';
-            const status = data.is_attack ? 'ATTACK DETECTED' : 'NORMAL TRAFFIC';
-            
-            let html = `
-                <div class="prediction-result ${className}">
-                    <h2>${icon} ${status}</h2>
-                    <p>Attack Type: <strong>${data.prediction}</strong></p>
-            `;
-            
-            if (data.confidence) {
-                html += `<p>Confidence: <strong>${(data.confidence * 100).toFixed(2)}%</strong></p>`;
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Upload failed');
+                state.datasetInfo = data;
+                uploadHint.textContent = `${data.filename} · ${data.rows} rows × ${data.columns} columns`;
+                setUploadStatus('Dataset ready. Proceed to training.', 'success');
+                trainButton.disabled = false;
+            } catch (error) {
+                console.error(error);
+                setUploadStatus(error.message, 'error');
+                trainButton.disabled = true;
             }
-            
-            html += '</div>';
-            resultDiv.innerHTML = html;
         }
 
-        function checkStatus() {
-            fetch('/status')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('datasetStatus').textContent = 
-                    data.dataset_loaded ? '✅' : '❌';
-                document.getElementById('modelsStatus').textContent = 
-                    data.models_trained ? '✅' : '❌';
+        async function trainModels() {
+            setTrainStatus('Training models…');
+            trainButton.disabled = true;
+            resultsGrid.innerHTML = '';
+
+            try {
+                const response = await fetch('/train', {
+                    method: 'POST',
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Training failed');
+
+                state.training = data;
+                state.features = data.feature_columns || [];
+
+                setTrainStatus(data.message || 'Training complete.', 'success');
+                renderResults(data.results, data.class_distribution);
+                buildFeatureInputs(state.features);
+                predictionOutput.innerHTML = '';
+            } catch (error) {
+                console.error(error);
+                setTrainStatus(error.message, 'error');
+                trainButton.disabled = false;
+            }
+        }
+
+        async function submitPrediction(event) {
+            event.preventDefault();
+            if (!state.features.length) return;
+
+            predictBtn.disabled = true;
+            predictionOutput.innerHTML = '';
+
+            const features = {};
+            state.features.forEach((feature) => {
+                const value = predictionForm.elements[feature]?.value ?? '';
+                const numeric = Number(value);
+                features[feature] = value === '' ? '' : (Number.isFinite(numeric) && value.trim() !== '' ? numeric : value);
             });
+
+            const payload = {
+                model: modelSelect.value,
+                features,
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Prediction failed');
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'prediction-result ' + (data.is_attack ? 'attack' : 'safe');
+                const confidenceText = typeof data.confidence === 'number'
+                    ? `${Math.round(data.confidence * 100)}% confidence`
+                    : 'confidence unavailable';
+                resultDiv.textContent = data.is_attack
+                    ? `⚠️ Attack detected: ${data.prediction} (${confidenceText})`
+                    : `✅ Normal traffic (${confidenceText})`;
+                predictionOutput.appendChild(resultDiv);
+            } catch (error) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'prediction-result attack';
+                resultDiv.textContent = error.message;
+                predictionOutput.appendChild(resultDiv);
+            } finally {
+                predictBtn.disabled = false;
+            }
         }
 
-        function showMessage(elementId, message, type) {
-            const element = document.getElementById(elementId);
-            element.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-        }
+        // Event wiring
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropzone.classList.remove('dragover');
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                uploadHint.textContent = file.name;
+                uploadFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (file) {
+                uploadHint.textContent = file.name;
+                uploadFile(file);
+            }
+        });
+
+        trainButton.addEventListener('click', trainModels);
+        predictionForm.addEventListener('submit', submitPrediction);
     </script>
 </body>
 </html>
