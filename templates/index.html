@@ -506,6 +506,28 @@
             }
         }
 
+        function updateModelOptions(modelKeys) {
+            if (!Array.isArray(modelKeys) || !modelKeys.length) {
+                return;
+            }
+
+            const previousSelection = modelSelect.value;
+            modelSelect.innerHTML = '';
+
+            modelKeys.forEach((key) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = formatModelName(key);
+                modelSelect.appendChild(option);
+            });
+
+            if (modelKeys.includes(previousSelection)) {
+                modelSelect.value = previousSelection;
+            } else {
+                modelSelect.value = modelKeys[0];
+            }
+        }
+
         function buildFeatureInputs(features) {
             featureFields.innerHTML = '';
             if (!features || !features.length) {
@@ -565,6 +587,7 @@
                 state.training = data;
                 state.features = data.feature_columns || [];
 
+                updateModelOptions(Object.keys(data.results || {}));
                 setTrainStatus(data.message || 'Training complete.', 'success');
                 renderResults(data.results, data.class_distribution);
                 buildFeatureInputs(state.features);
@@ -623,6 +646,24 @@
             }
         }
 
+        async function bootstrapManualPrediction() {
+            try {
+                const response = await fetch('/status');
+                if (!response.ok) return;
+
+                const data = await response.json();
+                if (Array.isArray(data.available_models) && data.available_models.length) {
+                    updateModelOptions(data.available_models);
+                }
+                if (Array.isArray(data.feature_columns) && data.feature_columns.length) {
+                    state.features = data.feature_columns;
+                    buildFeatureInputs(state.features);
+                }
+            } catch (error) {
+                console.warn('Unable to pre-load manual prediction inputs:', error);
+            }
+        }
+
         // Event wiring
         dropzone.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -659,6 +700,7 @@
 
         trainButton.addEventListener('click', trainModels);
         predictionForm.addEventListener('submit', submitPrediction);
+        bootstrapManualPrediction();
     </script>
 </body>
 </html>

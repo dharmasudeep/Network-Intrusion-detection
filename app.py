@@ -163,7 +163,6 @@ def train_models(X_resampled, X_test, y_resampled, y_test, X_train_original, y_t
             classification_report(y_test, svm_pred, output_dict=True)
         ),
         'training_samples': int(sample_size)
-        )
     }
 
     # Neural Network
@@ -434,11 +433,19 @@ def load_models():
 
 @app.route('/status')
 def status():
-    """Get system status"""
+    """Get system status and any cached model metadata for manual predictions."""
+
+    # Ensure previously trained artefacts are available after a restart.
+    if not models or scaler is None or feature_columns is None:
+        load_models()
+
     return jsonify({
         'models_trained': len(models) > 0,
-        'available_models': list(models.keys()),
-        'dataset_loaded': 'dataset_path' in session
+        'available_models': sorted(models.keys()),
+        'dataset_loaded': 'dataset_path' in session,
+        'feature_columns': feature_columns or [],
+        'attack_types': attack_types or [],
+        'class_distribution': class_distribution or {}
     })
 
 if __name__ == '__main__':
